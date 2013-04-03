@@ -8,6 +8,6 @@
 #ifndef REDUCE_CUDA_XREDUCE_H_
 #define REDUCE_CUDA_XREDUCE_H_
 
-
+#include <xcbb/reduce/cuda/detail/xreduce.h>
 
 #endif /* REDUCE_CUDA_XREDUCE_H_ */

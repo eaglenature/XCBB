@@ -14,9 +14,9 @@
 
 template <int NUM_ELEMENTS_PER_THREAD, int NUM_WARPS>
 __global__
-void UpsweepReduceKernel(uint* partials, uint* data, WorkDecomposition workdecomp)
+void UpsweepReduceKernel(uint* partials, uint* data, ScanWorkDecomposition workdecomp)
 {
-    const WorkDecomposition work = workdecomp;
+    const ScanWorkDecomposition work = workdecomp;
 
     // Determine blockId
     const int block = blockIdx.x;
@@ -28,9 +28,9 @@ void UpsweepReduceKernel(uint* partials, uint* data, WorkDecomposition workdecom
 
 template <int NUM_ELEMENTS_PER_THREAD, int NUM_WARPS>
 __global__
-void SpineScanKernel(uint* partials, WorkDecomposition workdecomp)
+void SpineScanKernel(uint* partials, ScanWorkDecomposition workdecomp)
 {
-    const WorkDecomposition work = workdecomp;
+    const ScanWorkDecomposition work = workdecomp;
 
     const int block = blockIdx.x;
 
@@ -44,9 +44,9 @@ void SpineScanKernel(uint* partials, WorkDecomposition workdecomp)
 
 template <int NUM_ELEMENTS_PER_THREAD, int NUM_WARPS>
 __global__
-void DownsweepScanKernel(uint* partials, uint* data, WorkDecomposition workdecomp)
+void DownsweepScanKernel(uint* partials, uint* data, ScanWorkDecomposition workdecomp)
 {
-    const WorkDecomposition work = workdecomp;
+    const ScanWorkDecomposition work = workdecomp;
 
     const int block = blockIdx.x;
 

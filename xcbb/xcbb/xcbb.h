@@ -9,6 +9,7 @@
 #define XCBB_H_
 
 
+#include <xcbb/reduce/xreduce.h>
 #include <xcbb/scan/xscan.h>
 
 #endif /* XCBB_H_ */

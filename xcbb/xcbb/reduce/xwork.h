@@ -1,15 +1,15 @@
 /*
- * <xcbb/scan/xwork.h>
+ * <xcbb/reduce/xwork.h>
  *
- *  Created on: Apr 1, 2013
+ *  Created on: Apr 3, 2013
  *      Author: eaglenature@gmail.com
  */
 
-#ifndef SCAN_XWORK_H_
-#define SCAN_XWORK_H_
+#ifndef REDUCE_XWORK_H_
+#define REDUCE_XWORK_H_
 
 
-struct ScanWorkDecomposition
+struct ReduceWorkDecomposition
 {
     int numElements;
     int numElementsPerTile;
@@ -19,10 +19,10 @@ struct ScanWorkDecomposition
     int numLargeBlocks;
 };
 
-void ComputeWorkload(ScanWorkDecomposition& work, int numBlocks, int numThreads, int numElementsPerThread, int numElements)
+void ComputeWorkload(ReduceWorkDecomposition& work, int numBlocks, int numThreads, int numElementsPerThread, int numElements)
 {
     printf("==================================\n");
-    printf("Scan Work decomposition:\n");
+    printf("Reduce Work decomposition:\n");
     printf("==================================\n");
     printf("numElements            %d\n", numElements);
     printf("numBlocks              %d\n", numBlocks);
@@ -52,4 +52,4 @@ void ComputeWorkload(ScanWorkDecomposition& work, int numBlocks, int numThreads,
     printf("==================================\n");
 }
 
-#endif /* SCAN_XWORK_H_ */
+#endif /* REDUCE_XWORK_H_ */

@@ -36,7 +36,7 @@ template
 __device__ inline
 uint ReduceTile(
         uint* data,
-        const WorkDecomposition& work,
+        const ScanWorkDecomposition& work,
         int blockDataOffset,
         int warp,
         int lane,
@@ -124,7 +124,7 @@ void BlockReduce(
         uint* partials,
         uint* data,
         int block,
-        const WorkDecomposition& work)
+        const ScanWorkDecomposition& work)
 {
 
     // determine if large or normal blocks
@@ -207,7 +207,7 @@ template
 __device__ inline
 void ScanTile(
         uint* data,
-        const WorkDecomposition& work,
+        const ScanWorkDecomposition& work,
         int blockDataOffset,
         int warp,
         int lane,
@@ -352,7 +352,7 @@ void BlockScan(
         uint* partials,
         uint* data,
         int block,
-        const WorkDecomposition& work,
+        const ScanWorkDecomposition& work,
         int blockSeed)
 {
 

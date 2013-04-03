@@ -57,8 +57,8 @@ private:
     int  _numThreads;
     int  _numElementsPerThread;
 
-    WorkDecomposition _regularWorkload;
-    WorkDecomposition _spineWorkload;
+    ScanWorkDecomposition _regularWorkload;
+    ScanWorkDecomposition _spineWorkload;
 
     template <int NUM_ELEMENTS_PER_THREAD, int NUM_WARPS>
     inline cudaError_t ReduceThenScanPass(ExclusiveScanStorage<Key>& storage);
