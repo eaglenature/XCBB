@@ -57,8 +57,8 @@ private:
     int  _numThreads;
     int  _numElementsPerThread;
 
-    ScanWorkDecomposition _regularWorkload;
-    ScanWorkDecomposition _spineWorkload;
+    ReduceWorkDecomposition _regularWorkload;
+    ReduceWorkDecomposition _spineWorkload;
 
     template <int NUM_ELEMENTS_PER_THREAD, int NUM_WARPS>
     inline cudaError_t ReducePass(ReduceStorage<Key>& storage);
@@ -95,6 +95,16 @@ template <int NUM_ELEMENTS_PER_THREAD, int NUM_WARPS>
 cudaError_t
 ReduceEnactor<Key>::ReducePass(ReduceStorage<Key>& storage)
 {
+    ReduceKernel<NUM_ELEMENTS_PER_THREAD, NUM_WARPS><<<_numBlocks, _numThreads>>>(
+            storage.d_spine,
+            storage.d_data,
+            _regularWorkload);
+    synchronizeIfEnabled("ReduceKernel");
+
+    SpineReduceKernel<NUM_ELEMENTS_PER_THREAD, NUM_WARPS><<<_numBlocks, _numThreads>>>(
+            storage.d_spine,
+            _spineWorkload);
+    synchronizeIfEnabled("SpineReduceKernel");
 
     return cudaSuccess;
 }

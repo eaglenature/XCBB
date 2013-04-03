@@ -10,4 +10,32 @@
 
 #include <xcbb/reduce/cuda/detail/xreduce.h>
 
+
+template <int NUM_ELEMENTS_PER_THREAD, int NUM_WARPS>
+__global__
+void ReduceKernel(uint* partials, uint* data, ReduceWorkDecomposition workdecomp)
+{
+    const ReduceWorkDecomposition work = workdecomp;
+
+    // Determine blockId
+    const int block = blockIdx.x;
+
+    // Reduce single block and store its reduction in partials
+    BlockReduce<NUM_ELEMENTS_PER_THREAD, NUM_WARPS>(partials, data, block, work);
+}
+
+
+template <int NUM_ELEMENTS_PER_THREAD, int NUM_WARPS>
+__global__
+void SpineReduceKernel(uint* partials, ReduceWorkDecomposition workdecomp)
+{
+    const ReduceWorkDecomposition work = workdecomp;
+
+    // Determine blockId
+    const int block = blockIdx.x;
+
+    // Scan single block and store its result in partials
+    BlockReduce<NUM_ELEMENTS_PER_THREAD, NUM_WARPS>(partials, partials, block, work);
+}
+
 #endif /* REDUCE_CUDA_XREDUCE_H_ */

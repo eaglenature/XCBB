@@ -418,4 +418,51 @@ __device__ inline uint* GetRakingThreadDataSegment(
 }
 
 
+
+
+__device__ inline void WarpRakingReduce(
+        uint* shared_totals,
+        uint shared_storage[][WARP_SIZE + 1],
+        int lane)
+{
+    /*
+     * Single warp perform serial reduction in shared memory
+     */
+    shared_totals[lane] = SerialReduce<4>(GetRakingThreadDataSegment(shared_storage, lane));
+    /*
+     * Warp synchronous reduction Kogge-Stone
+     */
+    KoggeStoneWarpReduce(shared_totals, lane);
+}
+
+
+
+__device__ inline uint WarpRakingScan(
+        uint* shared_totals,
+        uint shared_storage[][WARP_SIZE + 1],
+        int lane)
+{
+    /*
+     * Single warp perform serial reduction in shared memory
+     */
+    uint x = shared_totals[lane] = SerialReduce<4>(GetRakingThreadDataSegment(shared_storage, lane));
+
+    /*
+     * Warp synchronous scan Kogge-Stone
+     */
+    KoggeStoneWarpExclusiveScan(shared_totals, lane);
+    x += shared_totals[lane];
+
+    /*
+     * Single warp perform serial scan and seed in shared memory
+     */
+    ScanSegment<4>(GetRakingThreadDataSegment(shared_storage, lane), shared_totals[lane]);
+
+    /*
+     * last lane returns total of current tile
+     */
+    return x;
+}
+
+
 #endif /* XUTILS_H_ */
