@@ -154,8 +154,6 @@ void BlockReduce(
 
     __shared__ uint shared_storage[NUM_WARPS][WARP_SIZE + 1];
     __shared__ uint shared_totals[WARP_SIZE];
-    //__shared__ uint shared_totals[WARP_SIZE + WARP_SIZE/2];
-    //if (lane < WARP_SIZE >> 1) shared_totals[lane + WARP_SIZE] = 0;
 
     shared_storage[warp][lane] = reduce;
 
