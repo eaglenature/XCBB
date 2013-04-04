@@ -1,0 +1,16 @@
+# Binary files
+*.cubin
+*.out
+*.so
+*.a
+*.o
+
+# Directories
+bin/
+
+# Other files
+*.log
+*.tmp
+*.txt
+*~
+
