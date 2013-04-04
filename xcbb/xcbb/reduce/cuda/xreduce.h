@@ -34,8 +34,9 @@ void SpineReduceKernel(uint* partials, ReduceWorkDecomposition workdecomp)
     // Determine blockId
     const int block = blockIdx.x;
 
-    // Scan single block and store its result in partials
-    BlockReduce<NUM_ELEMENTS_PER_THREAD, NUM_WARPS>(partials, partials, block, work);
+    if (block > 0) return;
+
+    SpineBlockReduce<NUM_ELEMENTS_PER_THREAD, NUM_WARPS>(partials, partials, block, work);
 }
 
 #endif /* REDUCE_CUDA_XREDUCE_H_ */

@@ -153,4 +153,43 @@ void BlockReduce(
 }
 
 
+template
+<
+    int NUM_ELEMENTS_PER_THREAD,
+    int NUM_WARPS
+>
+__device__
+void SpineBlockReduce(
+        uint* partials,
+        uint* data,
+        int block,
+        const ReduceWorkDecomposition& work)
+{
+    const int warp = threadIdx.x >> 5;
+    const int lane = threadIdx.x & (WARP_SIZE - 1);
+
+    const int blockDataOffset = GetBlockDataOffset<NUM_ELEMENTS_PER_THREAD>(0);
+
+    __shared__ uint shared_totals[WARP_SIZE];
+
+    if (warp == 0) {
+
+        /*
+         * Load and reduce in registers and store result in shared memory
+         */
+        shared_totals[lane] = ReduceTile<true, NUM_ELEMENTS_PER_THREAD>(data, work, blockDataOffset, warp, lane);
+
+        /*
+         * Reduce in warp synchronous way
+         */
+        KoggeStoneWarpReduce(shared_totals, lane);
+
+        /*
+         * Store result in global memorr
+         */
+        partials[lane] = shared_totals[lane];
+    }
+}
+
+
 #endif /* REDUCE_CUDA_DETAIL_XREDUCE_H_ */

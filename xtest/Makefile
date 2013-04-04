@@ -40,10 +40,7 @@ DEFINES =
 #  Compiler flags
 #------------------------------------------------------------------------------------------------
 
-HOST_ARCH = -m32
-HOST_ARCH_SUFFIX = i386
-#HOST_ARCH = -m64
-#HOST_ARCH_SUFFIX = x86_64
+HOST_ARCH = 
 
 NVCCFLAGS = -Xptxas -v -Xcudafe -\#
 

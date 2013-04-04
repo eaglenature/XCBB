@@ -56,7 +56,7 @@ CUDATEST(ParallelExclusiveScan, 0)
 }
 
 
-struct ArrayScanTestList
+struct ScanTestList
 {
     void Create(int argc, char** argv, std::vector<unsigned int>& list)
     {
@@ -66,6 +66,6 @@ struct ArrayScanTestList
 
 int main(int argc, char** argv)
 {
-    TestSuite<ArrayScanTestList> suite(argc, argv);
+    TestSuite<ScanTestList> suite(argc, argv);
     TestRunner::GetInstance().RunSuite(suite);
 }

@@ -29,33 +29,31 @@ CUDATEST(ParallelReduce, 0)
     checkCudaErrors(cudaMemcpy(d_data, data.data(), sizeof(uint) * numElements, cudaMemcpyHostToDevice));
 
     // Reference serial version
-    uint reduce = SerialReduce(data);
+    uint serialReduce = SerialReduce(data);
 
     // Initialize reduce storage
     ReduceStorage<uint> storage(numElements);
     storage.InitDeviceStorage(d_data);
 
     // Create reduce enactor
-    ReduceEnactor<uint> red(numElements);
+    ReduceEnactor<uint> reduce(numElements);
 
     // Perform scan algorithm
     CudaDeviceTimer timer;
     timer.Start();
-    red.Enact(storage);
+    uint deviceResult = reduce.Enact(storage);
     timer.Stop();
 
-    uint result = 0;
-    // Get scanned array back to host
-    checkCudaErrors(cudaMemcpy(&result, d_data, sizeof(uint) * 1, cudaMemcpyDeviceToHost));
     checkCudaErrors(cudaFree(d_data));
 
-    EQUAL(reduce, result);
+    EQUAL(serialReduce, deviceResult);
+    printf("Results:    %d  %d\n", serialReduce, deviceResult);
     printf("Problem:    %d\n", numElements);
     printf("Time:       %.3f [ms]\n", timer.ElapsedTime());
 }
 
 
-struct ArrayScanTestList
+struct ReduceTestList
 {
     void Create(int argc, char** argv, std::vector<unsigned int>& list)
     {
@@ -65,6 +63,6 @@ struct ArrayScanTestList
 
 int main(int argc, char** argv)
 {
-    TestSuite<ArrayScanTestList> suite(argc, argv);
+    TestSuite<ReduceTestList> suite(argc, argv);
     TestRunner::GetInstance().RunSuite(suite);
 }

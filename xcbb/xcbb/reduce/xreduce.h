@@ -66,7 +66,7 @@ private:
 public:
 
     explicit ReduceEnactor(int numElements);
-    inline cudaError_t Enact(ReduceStorage<Key>& storage);
+    inline uint Enact(ReduceStorage<Key>& storage);
 };
 
 
@@ -83,11 +83,13 @@ ReduceEnactor<Key>::ReduceEnactor(int numElements)
 
 
 template <typename Key>
-cudaError_t
-ReduceEnactor<Key>::Enact(ReduceStorage<Key>& storage)
+uint ReduceEnactor<Key>::Enact(ReduceStorage<Key>& storage)
 {
     ReducePass<4, 4>(storage);
-    return cudaSuccess;
+
+    uint result = 0;
+    checkCudaErrors(cudaMemcpy(&result, storage.d_spine, sizeof(uint), cudaMemcpyDeviceToHost));
+    return result;
 }
 
 template <typename Key>
@@ -100,6 +102,7 @@ ReduceEnactor<Key>::ReducePass(ReduceStorage<Key>& storage)
             storage.d_data,
             _regularWorkload);
     synchronizeIfEnabled("ReduceKernel");
+
 
     SpineReduceKernel<NUM_ELEMENTS_PER_THREAD, NUM_WARPS><<<_numBlocks, _numThreads>>>(
             storage.d_spine,
