@@ -389,17 +389,17 @@ void WarpReduce(volatile uint* shared_storage, int tid)
 
 template <int NUM_ELEMENTS>
 __device__ inline int SerialReduce(uint* segment) {
-    uint reduce = segment[0];
+    uint reduce = 0;
     #pragma unroll
-    for (int i = 1; i < NUM_ELEMENTS; ++i) {
+    for (int i = 0; i < NUM_ELEMENTS; ++i) {
         reduce += segment[i];
     }
     return reduce;
 }
 
 __device__ inline int SerialReduce(uint* segment, int num_elements) {
-    uint reduce = segment[0];
-    for (int i = 1; i < num_elements; ++i) {
+    uint reduce = 0;
+    for (int i = 0; i < num_elements; ++i) {
         reduce += segment[i];
     }
     return reduce;

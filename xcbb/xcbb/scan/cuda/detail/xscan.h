@@ -40,7 +40,7 @@ uint ReduceTile(
                 GetWarpDataOffset<NUM_ELEMENTS_PER_THREAD>(warp));
 
         // Each thread reduces 4 elements in registers and accumulate result in register
-        reduce = LoadReduce(segment, lane);
+        reduce += LoadReduce(segment, lane);
 
     } else {
 
@@ -53,10 +53,10 @@ uint ReduceTile(
             int hitWarp;
 
             if (NUM_ELEMENTS_PER_THREAD == 4)
-                hitWarp = numExtra >> 7; // 3 + 4
+                hitWarp = numExtra >> 7;
 
             else if (NUM_ELEMENTS_PER_THREAD == 2)
-                hitWarp = numExtra >> 6; //2 + 4
+                hitWarp = numExtra >> 6;
 
             else if (NUM_ELEMENTS_PER_THREAD == 1)
                 hitWarp = numExtra >> 5;
@@ -68,9 +68,11 @@ uint ReduceTile(
 
                 // Process full 4 element per load and register reduction
                 VectorType* segment = reinterpret_cast<VectorType*>(degeneratedTile + GetWarpDataOffset<NUM_ELEMENTS_PER_THREAD>(warp));
-                reduce = LoadReduce(segment, lane);
+                reduce += LoadReduce(segment, lane);
 
             }
+
+            __syncthreads();
 
             if (warp == hitWarp) {
 
@@ -83,13 +85,13 @@ uint ReduceTile(
                             GetWarpDataOffset<NUM_ELEMENTS_PER_THREAD>(warp);
 
                     if (NUM_ELEMENTS_PER_THREAD == 4)
-                        reduce = SerialReduce(segment, numExtra & 127);//(NUM_ELEMENTS_PER_THREAD * WARP_SIZE - 1)
+                        reduce += SerialReduce(segment, numExtra & 127);
 
                     else if (NUM_ELEMENTS_PER_THREAD == 2)
-                        reduce = SerialReduce(segment, numExtra & 63);
+                        reduce += SerialReduce(segment, numExtra & 63);
 
                     else if (NUM_ELEMENTS_PER_THREAD == 1)
-                        reduce = SerialReduce(segment, numExtra & 31);
+                        reduce += SerialReduce(segment, numExtra & 31);
 
                 }
             }
