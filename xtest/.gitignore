@@ -9,6 +9,7 @@
 bin/
 
 # Other files
+*.sh
 *.log
 *.tmp
 *.txt

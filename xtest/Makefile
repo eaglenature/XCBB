@@ -78,3 +78,13 @@ bin/scan : scan.cu $(DEPS)
 	mkdir -p bin
 	$(NVCC) $(DEFINES) $(DEVICE_ARCH) -o bin/scan scan.cu $(NVCCFLAGS) $(HOST_ARCH) $(INC) -O3
 
+#------------------------------------------------------------------------------------------------
+#  make radixsort
+#------------------------------------------------------------------------------------------------
+
+radixsort: bin/radixsort
+
+bin/radixsort : radixsort.cu $(DEPS)
+	mkdir -p bin
+	$(NVCC) $(DEFINES) $(DEVICE_ARCH) -o bin/radixsort radixsort.cu $(NVCCFLAGS) $(HOST_ARCH) $(INC) -O3
+

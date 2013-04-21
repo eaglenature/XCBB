@@ -239,6 +239,42 @@ __device__ __host__ inline void ScanSegment(uint* segment, int num_elements, int
 }
 
 
+template <int NUM_ELEMENTS>
+__device__ __host__ inline void ScanSegment(int segment[], int seed)
+{
+    int sum, x;
+    sum = 0;
+    #pragma unroll
+    for (int i = 0; i < NUM_ELEMENTS; ++i) {
+        x = segment[i];
+        segment[i] = sum + seed;
+        sum += x;
+    }
+}
+
+__device__ __host__ inline void ScanSegment(int* segment, int num_elements)
+{
+    int sum, x;
+    sum = 0;
+    for (int i = 0; i < num_elements; ++i) {
+        x = segment[i];
+        segment[i] = sum;
+        sum += x;
+    }
+}
+
+__device__ __host__ inline void ScanSegment(int* segment, int num_elements, int seed)
+{
+    int sum, x;
+    sum = 0;
+    for (int i = 0; i < num_elements; ++i) {
+        x = segment[i];
+        segment[i] = sum + seed;
+        sum += x;
+    }
+}
+
+
 template <int NUM_WARPS, int WARP_STORAGE_SIZE>
 __device__ inline uint* GetWarpStorage(
         uint shared_storage[NUM_WARPS][WARP_STORAGE_SIZE],
@@ -399,6 +435,25 @@ __device__ inline int SerialReduce(uint* segment) {
 
 __device__ inline int SerialReduce(uint* segment, int num_elements) {
     uint reduce = 0;
+    for (int i = 0; i < num_elements; ++i) {
+        reduce += segment[i];
+    }
+    return reduce;
+}
+
+
+template <int NUM_ELEMENTS>
+__device__ inline int SerialReduce(int* segment) {
+    int reduce = 0;
+    #pragma unroll
+    for (int i = 0; i < NUM_ELEMENTS; ++i) {
+        reduce += segment[i];
+    }
+    return reduce;
+}
+
+__device__ inline int SerialReduce(int* segment, int num_elements) {
+    int reduce = 0;
     for (int i = 0; i < num_elements; ++i) {
         reduce += segment[i];
     }
