@@ -5,8 +5,8 @@
  *      Author: eaglenature@gmail.com
  */
 
-#ifndef RADIXSORT_CUDA_DETAIL_XSCAN_H_
-#define RADIXSORT_CUDA_DETAIL_XSCAN_H_
+#ifndef RADIXSORT_CUDA_DETAIL_XRADIXSORT_H_
+#define RADIXSORT_CUDA_DETAIL_XRADIXSORT_H_
 
 #include <xcbb/radixsort/xwork.h>
 #include <xcbb/xutils.h>
@@ -307,4 +307,4 @@ void BlockReduction(
     }
 }
 
-#endif /* RADIXSORT_CUDA_DETAIL_XSCAN_H_ */
+#endif /* RADIXSORT_CUDA_DETAIL_XRADIXSORT_H_ */

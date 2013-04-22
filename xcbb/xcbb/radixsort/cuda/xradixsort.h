@@ -5,8 +5,8 @@
  *      Author: eaglenature@gmail.com
  */
 
-#ifndef RADIXSORT_CUDA_XSCAN_H_
-#define RADIXSORT_CUDA_XSCAN_H_
+#ifndef RADIXSORT_CUDA_XRADIXSORT_H_
+#define RADIXSORT_CUDA_XRADIXSORT_H_
 
 
 #include <xcbb/radixsort/cuda/detail/xradixsort.h>
@@ -344,4 +344,4 @@ void ScanAndScatterKernel(
 }
 
 
-#endif /* RADIXSORT_CUDA_XSCAN_H_ */
+#endif /* RADIXSORT_CUDA_XRADIXSORT_H_ */
