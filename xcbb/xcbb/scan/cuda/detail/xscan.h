@@ -13,12 +13,8 @@
 
 
 
-template
-<
-    bool FULL_TILE_LOAD,
-    int NUM_ELEMENTS_PER_THREAD
->
-__device__ inline
+template <bool FULL_TILE_LOAD, int NUM_ELEMENTS_PER_THREAD>
+__device__ __forceinline__
 uint ReduceTile(
         uint* data,
         const ScanWorkDecomposition& work,
@@ -31,8 +27,8 @@ uint ReduceTile(
 
     uint reduce = 0;
 
-    if (FULL_TILE_LOAD) {
-
+    if (FULL_TILE_LOAD)
+    {
         VectorType* segment = reinterpret_cast<VectorType*>(
                 data +
                 blockDataOffset +
@@ -41,13 +37,13 @@ uint ReduceTile(
 
         // Each thread reduces 4 elements in registers and accumulate result in register
         reduce += LoadReduce(segment, lane);
-
-    } else {
-
+    }
+    else
+    {
         const int numExtra = work.numElementsExtra;
 
-        if (numExtra > 0) {
-
+        if (numExtra > 0)
+        {
             // which warp was hit - check if we can proceed some warps in full speed
             // notice warp is capturing 128 elements (4 per load), thats why division by 128
             int hitWarp;
@@ -61,8 +57,8 @@ uint ReduceTile(
             else if (NUM_ELEMENTS_PER_THREAD == 1)
                 hitWarp = numExtra >> 5;
 
-            if (warp < hitWarp) {
-
+            if (warp < hitWarp)
+            {
                 // get data offset assigned for degenerated tile in global memory
                 uint* degeneratedTile = data + work.numFullTiles * work.numElementsPerTile;
 
@@ -74,11 +70,11 @@ uint ReduceTile(
 
             __syncthreads();
 
-            if (warp == hitWarp) {
-
+            if (warp == hitWarp)
+            {
                 // process guarded reduction within warp
-                if (lane == 0) {
-
+                if (lane == 0)
+                {
                     // get data offset assigned for degenerated tile in global memory
                     uint* segment = data +
                             work.numFullTiles * work.numElementsPerTile +
@@ -101,12 +97,8 @@ uint ReduceTile(
 }
 
 
-template
-<
-    int NUM_ELEMENTS_PER_THREAD,
-    int NUM_WARPS
->
-__device__
+template <int NUM_ELEMENTS_PER_THREAD, int NUM_WARPS>
+__device__ __forceinline__
 void BlockReduce(
         uint* partials,
         uint* data,
@@ -128,14 +120,14 @@ void BlockReduce(
     uint reduce = 0;
 
     // Reduce all tiles at full speed
-    for (int tile = 0; tile < B; ++tile) {
-
+    for (int tile = 0; tile < B; ++tile)
+    {
         reduce += ReduceTile<true, NUM_ELEMENTS_PER_THREAD>(data, work, blockDataOffset, warp, lane, tile);
     }
 
     // Last CTA perfrom cleanup work
-    if (block == gridDim.x - 1) {
-
+    if (block == gridDim.x - 1)
+    {
         reduce += ReduceTile<false, NUM_ELEMENTS_PER_THREAD>(data, work, blockDataOffset, warp, lane);
     }
 
@@ -147,8 +139,8 @@ void BlockReduce(
     __syncthreads();
 
     // Single warp raking reduce in shared and the warp sync reduction of raking totals
-    if (warp == 0) {
-
+    if (warp == 0)
+    {
         WarpRakingReduce(shared_totals, shared_storage, lane);
         if (lane == 0) partials[block] = shared_totals[0];
     }
@@ -157,13 +149,8 @@ void BlockReduce(
 
 
 
-template
-<
-    bool FULL_TILE_LOAD,
-    int NUM_ELEMENTS_PER_THREAD,
-    int NUM_WARPS
->
-__device__ inline
+template <bool FULL_TILE_LOAD, int NUM_ELEMENTS_PER_THREAD, int NUM_WARPS>
+__device__ __forceinline__
 void ScanTile(
         uint* data,
         const ScanWorkDecomposition& work,
@@ -183,8 +170,8 @@ void ScanTile(
     uint tileSeed = tile_total[0];
 
 
-    if (FULL_TILE_LOAD) { // FULL TILE PATH
-
+    if (FULL_TILE_LOAD)
+    {
         __shared__ uint shared_totals[WARP_SIZE];
 
         VectorType* segment = reinterpret_cast<VectorType*>(
@@ -198,8 +185,8 @@ void ScanTile(
 
         __syncthreads();
 
-        if (warp == 0) {
-
+        if (warp == 0)
+        {
             int total = WarpRakingScan(shared_totals, shared_storage, lane);
             if (lane == WARP_SIZE - 1) tile_total[0] += total;
         }
@@ -210,12 +197,14 @@ void ScanTile(
         segment[lane] = x + tileSeed + blockSeed;
 
 
-    } else {  // DEGENERATED TILE PATH
+    }
+    else   // DEGENERATED TILE PATH
+    {
 
         const int numExtra = work.numElementsExtra;
 
-        if (numExtra > 0) {
-
+        if (numExtra > 0)
+        {
             int hitWarp = 0;
 
             if (NUM_ELEMENTS_PER_THREAD == 4)
@@ -231,17 +220,16 @@ void ScanTile(
             VectorType* segment;
             uint* lastsegment;
 
-            if (warp < hitWarp) {
-
+            if (warp < hitWarp)
+            {
                 uint* degeneratedTile = data + work.numFullTiles * work.numElementsPerTile;
                 segment = reinterpret_cast<VectorType*>(degeneratedTile + GetWarpDataOffset<NUM_ELEMENTS_PER_THREAD>(warp));
 
                 vec = segment[lane];
                 shared_storage[warp][lane] = ReduceWord(vec);
             }
-
-            if (warp == hitWarp) {
-
+            if (warp == hitWarp)
+            {
                 lastsegment = data +
                         work.numFullTiles * work.numElementsPerTile +
                         GetWarpDataOffset<NUM_ELEMENTS_PER_THREAD>(warp);
@@ -249,42 +237,40 @@ void ScanTile(
 
             __syncthreads();
 
-            if (warp == 0) {
-
+            if (warp == 0)
+            {
                 __shared__ uint shared_totals[WARP_SIZE];
                 shared_totals[lane] = 0;
 
-                if (lane < (hitWarp << 3)) {
-
+                if (lane < (hitWarp << 3))
+                {
                     shared_totals[lane] = SerialReduce<4>(GetRakingThreadDataSegment(shared_storage, lane));
                 }
 
                 KoggeStoneWarpExclusiveScan(shared_totals, lane);
 
-                if (lane == (hitWarp << 3)) {
-
+                if (lane == (hitWarp << 3))
+                {
                     tile_total[1] = shared_totals[lane];
                 }
-
-                if (lane < (hitWarp << 3)) {
-
+                if (lane < (hitWarp << 3))
+                {
                     ScanSegment<4>(GetRakingThreadDataSegment(shared_storage, lane), shared_totals[lane]);
                 }
             }
 
             __syncthreads();
 
-            if (warp < hitWarp) {
-
+            if (warp < hitWarp)
+            {
                 ScanWord(vec, shared_storage[warp][lane]);
                 segment[lane] = vec + tileSeed + blockSeed;
             }
-
-            if (warp == hitWarp) {
-
+            if (warp == hitWarp)
+            {
                 // process guarded scan within warp
-                if (lane == 0) {
-
+                if (lane == 0)
+                {
                     if (NUM_ELEMENTS_PER_THREAD == 4)
                         ScanSegment(lastsegment, numExtra & 127, tile_total[1] + tileSeed + blockSeed);
 
@@ -301,12 +287,8 @@ void ScanTile(
 }
 
 
-template
-<
-    int NUM_ELEMENTS_PER_THREAD,
-    int NUM_WARPS
->
-__device__
+template <int NUM_ELEMENTS_PER_THREAD, int NUM_WARPS>
+__device__ __forceinline__
 void BlockScan(
         uint* partials,
         uint* data,
@@ -330,19 +312,19 @@ void BlockScan(
     volatile __shared__ uint tile_total[2];
 
     if (threadIdx.x < 2) tile_total[threadIdx.x] = 0;
+
     __syncthreads();
 
 
     // Scan all tiles at full speed, each tile returns its total in tile_total to seed next tile
-    for (int tile = 0; tile < B; ++tile) {
-
+    for (int tile = 0; tile < B; ++tile)
+    {
         ScanTile<true,  NUM_ELEMENTS_PER_THREAD, NUM_WARPS>(data, work, blockDataOffset, warp, lane, tile_total, blockSeed, tile);
     }
 
-
     // Last CTA perfrom cleanup work
-    if (block == gridDim.x - 1) {
-
+    if (block == gridDim.x - 1)
+    {
         ScanTile<false, NUM_ELEMENTS_PER_THREAD, NUM_WARPS>(data, work, blockDataOffset, warp, lane, tile_total, blockSeed);
     }
 }

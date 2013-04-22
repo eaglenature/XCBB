@@ -12,12 +12,8 @@
 #include <xcbb/xutils.h>
 
 
-template
-<
-    bool FULL_TILE_LOAD,
-    int NUM_ELEMENTS_PER_THREAD
->
-__device__ inline
+template <bool FULL_TILE_LOAD, int NUM_ELEMENTS_PER_THREAD>
+__device__ __forceinline__
 uint ReduceTile(
         uint* data,
         const ReduceWorkDecomposition& work,
@@ -30,8 +26,8 @@ uint ReduceTile(
 
     uint reduce = 0;
 
-    if (FULL_TILE_LOAD) {
-
+    if (FULL_TILE_LOAD)
+    {
         VectorType* segment = reinterpret_cast<VectorType*>(
                 data +
                 blockDataOffset +
@@ -40,13 +36,13 @@ uint ReduceTile(
 
         // Each thread reduces 4 elements in registers and accumulate result in register
         reduce += LoadReduce(segment, lane);
-
-    } else {
-
+    }
+    else
+    {
         const int numExtra = work.numElementsExtra;
 
-        if (numExtra > 0) {
-
+        if (numExtra > 0)
+        {
             // which warp was hit - check if we can proceed some warps in full speed
             // notice warp is capturing 128 elements (4 per load), thats why division by 128
             int hitWarp;
@@ -60,24 +56,23 @@ uint ReduceTile(
             else if (NUM_ELEMENTS_PER_THREAD == 1)
                 hitWarp = numExtra >> 5;
 
-            if (warp < hitWarp) {
-
+            if (warp < hitWarp)
+            {
                 // get data offset assigned for degenerated tile in global memory
                 uint* degeneratedTile = data + work.numFullTiles * work.numElementsPerTile;
 
                 // Process full 4 element per load and register reduction
                 VectorType* segment = reinterpret_cast<VectorType*>(degeneratedTile + GetWarpDataOffset<NUM_ELEMENTS_PER_THREAD>(warp));
                 reduce += LoadReduce(segment, lane);
-
             }
 
             __syncthreads();
 
-            if (warp == hitWarp) {
-
+            if (warp == hitWarp)
+            {
                 // process guarded reduction within warp
-                if (lane == 0) {
-
+                if (lane == 0)
+                {
                     // get data offset assigned for degenerated tile in global memory
                     uint* segment = data +
                             work.numFullTiles * work.numElementsPerTile +
@@ -101,12 +96,8 @@ uint ReduceTile(
 
 
 
-template
-<
-    int NUM_ELEMENTS_PER_THREAD,
-    int NUM_WARPS
->
-__device__
+template <int NUM_ELEMENTS_PER_THREAD, int NUM_WARPS>
+__device__ __forceinline__
 void BlockReduce(
         uint* partials,
         uint* data,
@@ -128,14 +119,14 @@ void BlockReduce(
     uint reduce = 0;
 
     // Reduce all tiles at full speed
-    for (int tile = 0; tile < B; ++tile) {
-
+    for (int tile = 0; tile < B; ++tile)
+    {
         reduce += ReduceTile<true, NUM_ELEMENTS_PER_THREAD>(data, work, blockDataOffset, warp, lane, tile);
     }
 
     // Last CTA perfrom cleanup work
-    if (block == gridDim.x - 1) {
-
+    if (block == gridDim.x - 1)
+    {
         reduce += ReduceTile<false, NUM_ELEMENTS_PER_THREAD>(data, work, blockDataOffset, warp, lane);
     }
 
@@ -147,20 +138,16 @@ void BlockReduce(
     __syncthreads();
 
     // Single warp raking reduce in shared and the warp sync reduction of raking totals
-    if (warp == 0) {
-
+    if (warp == 0)
+    {
         WarpRakingReduce(shared_totals, shared_storage, lane);
         if (lane == 0) partials[block] = shared_totals[0];
     }
 }
 
 
-template
-<
-    int NUM_ELEMENTS_PER_THREAD,
-    int NUM_WARPS
->
-__device__
+template <int NUM_ELEMENTS_PER_THREAD, int NUM_WARPS>
+__device__ __forceinline__
 void SpineBlockReduce(
         uint* partials,
         uint* data,
@@ -174,8 +161,8 @@ void SpineBlockReduce(
 
     __shared__ uint shared_totals[WARP_SIZE];
 
-    if (warp == 0) {
-
+    if (warp == 0)
+    {
         /*
          * Load and reduce in registers and store result in shared memory
          */

@@ -17,21 +17,25 @@ template <>      struct VectorTypeTraits<4> { typedef uint4 type; };
 
 
 
-__device__ inline uint2 operator+(const uint2& a, const uint2& b)
+__device__ __forceinline__
+uint2 operator+(const uint2& a, const uint2& b)
 {
     return make_uint2(a.x + b.x, a.y + b.y);
 }
-__device__ inline uint4 operator+(const uint4& a, const uint4& b)
+__device__ __forceinline__
+uint4 operator+(const uint4& a, const uint4& b)
 {
     return make_uint4(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w);
 }
 
-__device__ inline uint2 operator+(const uint2& a, uint alpha)
+__device__ __forceinline__
+uint2 operator+(const uint2& a, uint alpha)
 {
     return make_uint2(a.x + alpha, a.y + alpha);
 }
 
-__device__ inline uint4 operator+(const uint4& a, uint alpha)
+__device__ __forceinline__
+uint4 operator+(const uint4& a, uint alpha)
 {
     return make_uint4(a.x + alpha, a.y + alpha, a.z + alpha, a.w + alpha);
 }
@@ -40,7 +44,8 @@ __device__ inline uint4 operator+(const uint4& a, uint alpha)
 
 
 template <int NUM_ELEMENTS_PER_THREAD>
-__device__ inline int GetWarpDataOffset(int warp)
+__device__ __forceinline__
+int GetWarpDataOffset(int warp)
 {
     return warp * WARP_SIZE * NUM_ELEMENTS_PER_THREAD;
 }
@@ -48,7 +53,8 @@ __device__ inline int GetWarpDataOffset(int warp)
 
 
 template <int NUM_ELEMENTS_PER_THREAD>
-__device__ inline int GetBlockDataOffset(int block, int tilesPerBlock)
+__device__ __forceinline__
+int GetBlockDataOffset(int block, int tilesPerBlock)
 {
     return block * tilesPerBlock * blockDim.x * NUM_ELEMENTS_PER_THREAD;
 }
@@ -56,7 +62,8 @@ __device__ inline int GetBlockDataOffset(int block, int tilesPerBlock)
 
 
 template <int NUM_ELEMENTS_PER_THREAD>
-__device__ inline int GetBlockDataOffset(int precedingTiles)
+__device__ __forceinline__
+int GetBlockDataOffset(int precedingTiles)
 {
     return precedingTiles * blockDim.x * NUM_ELEMENTS_PER_THREAD;
 }
@@ -64,7 +71,8 @@ __device__ inline int GetBlockDataOffset(int precedingTiles)
 
 
 template <int NUM_ELEMENTS_PER_THREAD>
-__device__ inline int GetTileDataOffset(int tile)
+__device__ __forceinline__
+int GetTileDataOffset(int tile)
 {
     return tile * blockDim.x * NUM_ELEMENTS_PER_THREAD;
 }
@@ -72,7 +80,8 @@ __device__ inline int GetTileDataOffset(int tile)
 
 
 template <int NUM_WARPS, int WARP_STORAGE_SIZE>
-__device__ inline void LoadReduceAndStore(
+__device__ __forceinline__
+void LoadReduceAndStore(
         uint shared_storage[NUM_WARPS][WARP_STORAGE_SIZE],
         uint2* global_storage,
         int warp,
@@ -86,7 +95,8 @@ __device__ inline void LoadReduceAndStore(
 
 
 template <int NUM_WARPS, int WARP_STORAGE_SIZE>
-__device__ inline void LoadReduceAndStore(
+__device__ __forceinline__
+void LoadReduceAndStore(
         uint shared_storage[NUM_WARPS][WARP_STORAGE_SIZE],
         uint4* global_storage,
         int warp,
@@ -98,7 +108,8 @@ __device__ inline void LoadReduceAndStore(
 
 
 
-__device__ inline uint LoadReduce(
+__device__ __forceinline__
+uint LoadReduce(
         uint* global_storage,
         int lane)
 {
@@ -107,7 +118,8 @@ __device__ inline uint LoadReduce(
 }
 
 
-__device__ inline uint LoadReduce(
+__device__ __forceinline__
+uint LoadReduce(
         uint2* global_storage,
         int lane)
 {
@@ -116,7 +128,8 @@ __device__ inline uint LoadReduce(
 }
 
 
-__device__ inline uint LoadReduce(
+__device__ __forceinline__
+uint LoadReduce(
         uint4* global_storage,
         int lane)
 {
@@ -127,17 +140,20 @@ __device__ inline uint LoadReduce(
 /*
  * Reduce word
  */
-__device__ inline uint ReduceWord(const uint& word)
+__device__ __forceinline__
+uint ReduceWord(const uint& word)
 {
     return word;
 }
 
-__device__ inline uint ReduceWord(const uint2& word)
+__device__ __forceinline__
+uint ReduceWord(const uint2& word)
 {
     return word.x + word.y;
 }
 
-__device__ inline uint ReduceWord(const uint4& word)
+__device__ __forceinline__
+uint ReduceWord(const uint4& word)
 {
     return word.x + word.y + word.z + word.w;
 }
@@ -145,18 +161,21 @@ __device__ inline uint ReduceWord(const uint4& word)
 /*
  * Scan word
  */
-__device__ __host__ inline void ScanWord(uint& word)
+__device__ __host__ __forceinline__
+void ScanWord(uint& word)
 {
     word = 0;
 }
 
-__device__ __host__ inline void ScanWord(uint2& word)
+__device__ __host__ __forceinline__
+void ScanWord(uint2& word)
 {
     word.y = word.x;
     word.x = 0;
 }
 
-__device__ __host__ inline void ScanWord(uint4& word)
+__device__ __host__ __forceinline__
+void ScanWord(uint4& word)
 {
     uint sum, x;
     sum = 0;
@@ -166,18 +185,21 @@ __device__ __host__ inline void ScanWord(uint4& word)
     x = word.w; word.w = sum;
 }
 
-__device__ __host__ inline void ScanWord(uint& word, int seed)
+__device__ __host__ __forceinline__
+void ScanWord(uint& word, int seed)
 {
     word = seed;
 }
 
-__device__ __host__ inline void ScanWord(uint2& word, int seed)
+__device__ __host__ __forceinline__
+void ScanWord(uint2& word, int seed)
 {
     word.y = word.x + seed;
     word.x = seed;
 }
 
-__device__ __host__ inline void ScanWord(uint4& word, int seed)
+__device__ __host__ __forceinline__
+void ScanWord(uint4& word, int seed)
 {
     uint sum, x;
     sum = 0;
@@ -191,12 +213,14 @@ __device__ __host__ inline void ScanWord(uint4& word, int seed)
  * Scan segment
  */
 template <int NUM_ELEMENTS>
-__device__ __host__ inline void ScanSegment(uint segment[])
+__device__ __host__ __forceinline__
+void ScanSegment(uint segment[])
 {
     uint sum, x;
     sum = 0;
     #pragma unroll
-    for (int i = 0; i < NUM_ELEMENTS; ++i) {
+    for (int i = 0; i < NUM_ELEMENTS; ++i)
+    {
         x = segment[i];
         segment[i] = sum;
         sum += x;
@@ -204,34 +228,40 @@ __device__ __host__ inline void ScanSegment(uint segment[])
 }
 
 template <int NUM_ELEMENTS>
-__device__ __host__ inline void ScanSegment(uint segment[], int seed)
+__device__ __host__ __forceinline__
+void ScanSegment(uint segment[], int seed)
 {
     uint sum, x;
     sum = 0;
     #pragma unroll
-    for (int i = 0; i < NUM_ELEMENTS; ++i) {
+    for (int i = 0; i < NUM_ELEMENTS; ++i)
+    {
         x = segment[i];
         segment[i] = sum + seed;
         sum += x;
     }
 }
 
-__device__ __host__ inline void ScanSegment(uint* segment, int num_elements)
+__device__ __host__ __forceinline__
+void ScanSegment(uint* segment, int num_elements)
 {
     uint sum, x;
     sum = 0;
-    for (int i = 0; i < num_elements; ++i) {
+    for (int i = 0; i < num_elements; ++i)
+    {
         x = segment[i];
         segment[i] = sum;
         sum += x;
     }
 }
 
-__device__ __host__ inline void ScanSegment(uint* segment, int num_elements, int seed)
+__device__ __host__ __forceinline__
+void ScanSegment(uint* segment, int num_elements, int seed)
 {
     uint sum, x;
     sum = 0;
-    for (int i = 0; i < num_elements; ++i) {
+    for (int i = 0; i < num_elements; ++i)
+    {
         x = segment[i];
         segment[i] = sum + seed;
         sum += x;
@@ -240,34 +270,40 @@ __device__ __host__ inline void ScanSegment(uint* segment, int num_elements, int
 
 
 template <int NUM_ELEMENTS>
-__device__ __host__ inline void ScanSegment(int segment[], int seed)
+__device__ __host__ __forceinline__
+void ScanSegment(int segment[], int seed)
 {
     int sum, x;
     sum = 0;
     #pragma unroll
-    for (int i = 0; i < NUM_ELEMENTS; ++i) {
+    for (int i = 0; i < NUM_ELEMENTS; ++i)
+    {
         x = segment[i];
         segment[i] = sum + seed;
         sum += x;
     }
 }
 
-__device__ __host__ inline void ScanSegment(int* segment, int num_elements)
+__device__ __host__ __forceinline__
+void ScanSegment(int* segment, int num_elements)
 {
     int sum, x;
     sum = 0;
-    for (int i = 0; i < num_elements; ++i) {
+    for (int i = 0; i < num_elements; ++i)
+    {
         x = segment[i];
         segment[i] = sum;
         sum += x;
     }
 }
 
-__device__ __host__ inline void ScanSegment(int* segment, int num_elements, int seed)
+__device__ __host__ __forceinline__
+void ScanSegment(int* segment, int num_elements, int seed)
 {
     int sum, x;
     sum = 0;
-    for (int i = 0; i < num_elements; ++i) {
+    for (int i = 0; i < num_elements; ++i)
+    {
         x = segment[i];
         segment[i] = sum + seed;
         sum += x;
@@ -276,7 +312,8 @@ __device__ __host__ inline void ScanSegment(int* segment, int num_elements, int 
 
 
 template <int NUM_WARPS, int WARP_STORAGE_SIZE>
-__device__ inline uint* GetWarpStorage(
+__device__ __forceinline__
+uint* GetWarpStorage(
         uint shared_storage[NUM_WARPS][WARP_STORAGE_SIZE],
         int warp)
 {
@@ -286,7 +323,7 @@ __device__ inline uint* GetWarpStorage(
 /*
  * TODO implement version with no conditionals that reqire WARP_SIZE + WARP_SIZE/2 shared memory
  */
-__device__ inline
+__device__ __forceinline__
 void KoggeStoneWarpExclusiveScan(volatile uint* shared_storage, int tid)
 {
     uint x = shared_storage[tid];
@@ -307,7 +344,7 @@ void KoggeStoneWarpExclusiveScan(volatile uint* shared_storage, int tid)
 /*
  * TODO implement version with no conditionals that reqire WARP_SIZE + WARP_SIZE/2 shared memory
  */
-__device__ inline
+__device__ __forceinline__
 void KoggeStoneWarpExclusiveScan(volatile uint* shared_storage, int tid, int seed)
 {
     uint x = shared_storage[tid];
@@ -328,7 +365,7 @@ void KoggeStoneWarpExclusiveScan(volatile uint* shared_storage, int tid, int see
 /*
  * TODO implement version with no conditionals that reqire WARP_SIZE + WARP_SIZE/2 shared memory
  */
-__device__ inline
+__device__ __forceinline__
 void KoggeStoneWarpInclusiveScan(volatile uint* shared_storage, int tid)
 {
     int sum = shared_storage[tid];
@@ -347,7 +384,7 @@ void KoggeStoneWarpInclusiveScan(volatile uint* shared_storage, int tid)
 /*
  * TODO implement version with no conditionals that reqire WARP_SIZE + WARP_SIZE/2 shared memory
  */
-__device__ inline
+__device__ __forceinline__
 void KoggeStoneWarpInclusiveScan(volatile uint* shared_storage, int tid, int seed)
 {
     int sum = shared_storage[tid];
@@ -366,7 +403,7 @@ void KoggeStoneWarpInclusiveScan(volatile uint* shared_storage, int tid, int see
 /*
  * TODO implement version with no conditionals that reqire WARP_SIZE + WARP_SIZE/2 shared memory
  */
-__device__ inline
+__device__ __forceinline__
 void KoggeStoneWarpReduceTODO(volatile uint* shared_storage, int tid)
 {
     //uint x = shared_storage[tid];
@@ -382,7 +419,7 @@ void KoggeStoneWarpReduceTODO(volatile uint* shared_storage, int tid)
     sum += shared_storage[tid + 16];
     shared_storage[tid] = sum;
 }
-__device__ inline
+__device__ __forceinline__
 void KoggeStoneWarpReduce(volatile uint* shared_storage, int tid)
 {
     //uint x = shared_storage[tid];
@@ -409,7 +446,7 @@ void KoggeStoneWarpReduce(volatile uint* shared_storage, int tid)
  * NUM_ELEMENTS = 2   =>  Active Threads = 1
  */
 template <int NUM_ELEMENTS>
-__device__ inline
+__device__ __forceinline__
 void WarpReduce(volatile uint* shared_storage, int tid)
 {
     if (tid < (NUM_ELEMENTS >> 1))
@@ -424,18 +461,24 @@ void WarpReduce(volatile uint* shared_storage, int tid)
 }
 
 template <int NUM_ELEMENTS>
-__device__ inline int SerialReduce(uint* segment) {
+__device__ __forceinline__
+int SerialReduce(uint* segment)
+{
     uint reduce = 0;
     #pragma unroll
-    for (int i = 0; i < NUM_ELEMENTS; ++i) {
+    for (int i = 0; i < NUM_ELEMENTS; ++i)
+    {
         reduce += segment[i];
     }
     return reduce;
 }
 
-__device__ inline int SerialReduce(uint* segment, int num_elements) {
+__device__ __forceinline__
+int SerialReduce(uint* segment, int num_elements)
+{
     uint reduce = 0;
-    for (int i = 0; i < num_elements; ++i) {
+    for (int i = 0; i < num_elements; ++i)
+    {
         reduce += segment[i];
     }
     return reduce;
@@ -443,25 +486,31 @@ __device__ inline int SerialReduce(uint* segment, int num_elements) {
 
 
 template <int NUM_ELEMENTS>
-__device__ inline int SerialReduce(int* segment) {
+__device__ __forceinline__ int SerialReduce(int* segment)
+{
     int reduce = 0;
     #pragma unroll
-    for (int i = 0; i < NUM_ELEMENTS; ++i) {
+    for (int i = 0; i < NUM_ELEMENTS; ++i)
+    {
         reduce += segment[i];
     }
     return reduce;
 }
 
-__device__ inline int SerialReduce(int* segment, int num_elements) {
+__device__ __forceinline__
+int SerialReduce(int* segment, int num_elements)
+{
     int reduce = 0;
-    for (int i = 0; i < num_elements; ++i) {
+    for (int i = 0; i < num_elements; ++i)
+    {
         reduce += segment[i];
     }
     return reduce;
 }
 
 // TODO do it more generic for raking segment other than 4
-__device__ inline uint* GetRakingThreadDataSegment(
+__device__ __forceinline__
+uint* GetRakingThreadDataSegment(
         uint shared_storage[][WARP_SIZE + 1],
         int lane)
 {
@@ -475,7 +524,8 @@ __device__ inline uint* GetRakingThreadDataSegment(
 
 
 
-__device__ inline void WarpRakingReduce(
+__device__ __forceinline__
+void WarpRakingReduce(
         uint* shared_totals,
         uint shared_storage[][WARP_SIZE + 1],
         int lane)
@@ -492,7 +542,8 @@ __device__ inline void WarpRakingReduce(
 
 
 
-__device__ inline uint WarpRakingScan(
+__device__ __forceinline__
+uint WarpRakingScan(
         uint* shared_totals,
         uint shared_storage[][WARP_SIZE + 1],
         int lane)

@@ -14,32 +14,38 @@ class CudaDeviceTimer
 {
 public:
 
-    CudaDeviceTimer() {
+    CudaDeviceTimer()
+    {
         checkCudaErrors(cudaEventCreate(&start));
         checkCudaErrors(cudaEventCreate(&stop));
     }
 
-    ~CudaDeviceTimer() {
+    ~CudaDeviceTimer()
+    {
         checkCudaErrors(cudaEventDestroy(start));
         checkCudaErrors(cudaEventDestroy(stop));
     }
 
-    inline void Start() {
+    inline void Start()
+    {
         checkCudaErrors(cudaEventRecord(start, 0));
     }
 
-    inline void Stop() {
+    inline void Stop()
+    {
         checkCudaErrors(cudaEventRecord(stop, 0));
         checkCudaErrors(cudaEventSynchronize(stop));
     }
 
-    inline float ElapsedTime() const {
+    inline float ElapsedTime() const
+    {
         float totalTimeMsec = 0.0f;
         checkCudaErrors(cudaEventElapsedTime(&totalTimeMsec, start, stop));
         return totalTimeMsec;
     }
 
-    inline void Reset() {
+    inline void Reset()
+    {
         checkCudaErrors(cudaEventDestroy(start));
         checkCudaErrors(cudaEventDestroy(stop));
         checkCudaErrors(cudaEventCreate(&start));
