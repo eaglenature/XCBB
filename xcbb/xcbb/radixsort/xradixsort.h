@@ -23,14 +23,14 @@ struct RadixsortStorage
     bool  *d_swap;
     int    numElements;
 
-    inline void InitDeviceStorage(Key* inKeys)
+    __forceinline__ void InitDeviceStorage(Key* inKeys)
     {
         d_inKeys = inKeys;
         checkCudaErrors(cudaMalloc((void**) &d_outKeys, sizeof(Key) * numElements));
         checkCudaErrors(cudaMalloc((void**) &d_swap, sizeof(bool) * 2));
     }
 
-    inline void ReleaseDeviceStorage()
+    __forceinline__ void ReleaseDeviceStorage()
     {
         if (d_outKeys) checkCudaErrors(cudaFree(d_outKeys));
         if (d_spine) checkCudaErrors(cudaFree(d_spine));
@@ -67,12 +67,12 @@ private:
     RadixsortWorkDecomposition _regularWorkload;
 
     template<int PASS, int RADIX_BITS, int CURRENT_BIT>
-    inline cudaError_t DistributionSortPass(RadixsortStorage<Key>& storage);
+    __forceinline__ cudaError_t DistributionSortPass(RadixsortStorage<Key>& storage);
 
 public:
 
     explicit RadixsortEnactor(int numElements);
-    inline cudaError_t Enact(RadixsortStorage<Key>& storage);
+    __forceinline__ cudaError_t Enact(RadixsortStorage<Key>& storage);
 };
 
 

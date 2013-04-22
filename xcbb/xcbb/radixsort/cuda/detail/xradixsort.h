@@ -25,22 +25,28 @@ template<> struct DigitMask<2> { static const uint value = 0x00000003; };
 template<> struct DigitMask<4> { static const uint value = 0x0000000F; };
 template<> struct DigitMask<8> { static const uint value = 0x000000FF; };
 
-template<> struct UpdateHistogram<uint> {
-    __device__
-    inline static void apply(uint* const histogram, uint element) {
+template<> struct UpdateHistogram<uint>
+{
+    __device__ __forceinline__
+    static void apply(uint* const histogram, uint element)
+    {
         ++histogram[element];
     }
 };
-template<> struct UpdateHistogram<uint2> {
-    __device__
-    inline static void apply(uint* const histogram, const uint2& element) {
+template<> struct UpdateHistogram<uint2>
+{
+    __device__ __forceinline__
+    static void apply(uint* const histogram, const uint2& element)
+    {
         ++histogram[element.x];
         ++histogram[element.y];
     }
 };
-template<> struct UpdateHistogram<uint4> {
-    __device__
-    inline static void apply(uint* const histogram, const uint4& element) {
+template<> struct UpdateHistogram<uint4>
+{
+    __device__ __forceinline__
+    static void apply(uint* const histogram, const uint4& element)
+    {
         ++histogram[element.x];
         ++histogram[element.y];
         ++histogram[element.z];
@@ -48,22 +54,28 @@ template<> struct UpdateHistogram<uint4> {
     }
 };
 
-template<int BITS, int OFFSET> struct ExtractMaskedValue<uint,  BITS, OFFSET> {
-    __device__
-    inline static uint get(uint a) {
+template<int BITS, int OFFSET> struct ExtractMaskedValue<uint,  BITS, OFFSET>
+{
+    __device__ __forceinline__
+    static uint get(uint a)
+    {
         return (a >> OFFSET) & DigitMask<BITS>::value;
     }
 };
-template<int BITS, int OFFSET> struct ExtractMaskedValue<uint2, BITS, OFFSET> {
-    __device__
-    inline static uint2 get(const uint2& a) {
+template<int BITS, int OFFSET> struct ExtractMaskedValue<uint2, BITS, OFFSET>
+{
+    __device__ __forceinline__
+    static uint2 get(const uint2& a)
+    {
         return make_uint2((a.x >> OFFSET) & DigitMask<BITS>::value,
                           (a.y >> OFFSET) & DigitMask<BITS>::value);
     }
 };
-template<int BITS, int OFFSET> struct ExtractMaskedValue<uint4, BITS, OFFSET> {
-    __device__
-    inline static uint4 get(const uint4& a) {
+template<int BITS, int OFFSET> struct ExtractMaskedValue<uint4, BITS, OFFSET>
+{
+    __device__ __forceinline__
+    static uint4 get(const uint4& a)
+    {
         return make_uint4((a.x >> OFFSET) & DigitMask<BITS>::value,
                           (a.y >> OFFSET) & DigitMask<BITS>::value,
                           (a.z >> OFFSET) & DigitMask<BITS>::value,
@@ -77,7 +89,8 @@ __device__ __forceinline__
 void ResetStorage(uint shared_storage[LANES][NUM_THREADS])
 {
     #pragma unroll
-    for (int ilane = 0; ilane < (int)LANES; ilane++) {
+    for (int ilane = 0; ilane < (int)LANES; ilane++)
+    {
         shared_storage[ilane][threadIdx.x] = 0;
     }
 }
@@ -87,21 +100,27 @@ __device__ __forceinline__
 void ResetSegment(T segment[])
 {
     #pragma unroll
-    for (int i = 0; i < (int)NUM_ELEMENTS; ++i) {
+    for (int i = 0; i < (int)NUM_ELEMENTS; ++i)
+    {
         segment[i] = 0;
     }
 }
 
 
-__device__ __forceinline__ uint IncQbyte(int qbyte) {
+__device__ __forceinline__
+uint IncQbyte(int qbyte)
+{
     return 1 << (qbyte << 3);
 }
-
-__device__ __forceinline__ uint IncQbyte(int inc, int qbyte) {
+__device__ __forceinline__
+uint IncQbyte(int inc, int qbyte)
+{
     return inc << (qbyte << 3);
 }
 
-__device__ __forceinline__ uint DecodeQbyte(uint qword, int qbyte) {
+__device__ __forceinline__
+uint DecodeQbyte(uint qword, int qbyte)
+{
     return (qword >> (qbyte << 3)) & 0xff;
 }
 
@@ -150,7 +169,7 @@ void TileReduction(
         #pragma unroll
         for (int i = 0; i < (int)RAKING_ELEMENT_PER_THREAD; ++i)
         {
-            encoded = shared_storage[warp][lane + i*WARP_SIZE];
+            encoded = shared_storage[warp][lane + i * WARP_SIZE];
             local_histogram[0] += DecodeQbyte(encoded, 0);
             local_histogram[1] += DecodeQbyte(encoded, 1);
             local_histogram[2] += DecodeQbyte(encoded, 2);
@@ -184,9 +203,7 @@ void TileReduction(
             if (warp < hitWarp)
             {
                 uint4* data = reinterpret_cast<uint4*>(d_data);
-
                 Bucket<CURRENT_BIT>(data[threadIdx.x], shared_storage);
-
             }
             if (warp == hitWarp)
             {
@@ -205,8 +222,8 @@ void TileReduction(
                     else if (NUM_ELEMENTS_PER_THREAD == 1)
                         numElementsLeft =  numExtra & 31;
 
-                    for (int left = 0; left < numElementsLeft; ++left) {
-
+                    for (int left = 0; left < numElementsLeft; ++left)
+                    {
                         Bucket<CURRENT_BIT>(data[left], shared_storage);
                     }
                 }
@@ -219,7 +236,7 @@ void TileReduction(
             #pragma unroll
             for (int i = 0; i < (int)RAKING_ELEMENT_PER_THREAD; ++i)
             {
-                encoded = shared_storage[warp][lane + i*WARP_SIZE];
+                encoded = shared_storage[warp][lane + i * WARP_SIZE];
                 local_histogram[0] += DecodeQbyte(encoded, 0);
                 local_histogram[1] += DecodeQbyte(encoded, 1);
                 local_histogram[2] += DecodeQbyte(encoded, 2);
@@ -246,6 +263,7 @@ void BlockReduction(
     const int blockDataOffset = GetBlockDataOffset<NUM_ELEMENTS_PER_THREAD>(precedingTiles);
 
     const int RADIX_DIGITS = 1 << RADIX_BITS;
+
     const int warp = threadIdx.x >> 5;
     const int lane = threadIdx.x & (WARP_SIZE - 1);
 
