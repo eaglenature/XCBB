@@ -28,7 +28,7 @@ INC = -I. -I../xcbb
 #  Libraries
 #------------------------------------------------------------------------------------------------
 
-LIB =
+LIB = -lgtest -lgmock
 
 #------------------------------------------------------------------------------------------------
 #  Defines
@@ -66,7 +66,7 @@ reduce: bin/reduce
 
 bin/reduce : reduce.cu $(DEPS)
 	mkdir -p bin
-	$(NVCC) $(DEFINES) $(DEVICE_ARCH) -o bin/reduce reduce.cu $(NVCCFLAGS) $(HOST_ARCH) $(INC) -O3
+	$(NVCC) $(DEFINES) $(DEVICE_ARCH) -o bin/reduce reduce.cu $(NVCCFLAGS) $(HOST_ARCH) $(INC) $(LIB) -O3
 
 #------------------------------------------------------------------------------------------------
 #  make scan
@@ -76,7 +76,7 @@ scan: bin/scan
 
 bin/scan : scan.cu $(DEPS)
 	mkdir -p bin
-	$(NVCC) $(DEFINES) $(DEVICE_ARCH) -o bin/scan scan.cu $(NVCCFLAGS) $(HOST_ARCH) $(INC) -O3
+	$(NVCC) $(DEFINES) $(DEVICE_ARCH) -o bin/scan scan.cu $(NVCCFLAGS) $(HOST_ARCH) $(INC) $(LIB) -O3
 
 #------------------------------------------------------------------------------------------------
 #  make radixsort
@@ -86,5 +86,5 @@ radixsort: bin/radixsort
 
 bin/radixsort : radixsort.cu $(DEPS)
 	mkdir -p bin
-	$(NVCC) $(DEFINES) $(DEVICE_ARCH) -o bin/radixsort radixsort.cu $(NVCCFLAGS) $(HOST_ARCH) $(INC) -O3
+	$(NVCC) $(DEFINES) $(DEVICE_ARCH) -o bin/radixsort radixsort.cu $(NVCCFLAGS) $(HOST_ARCH) $(INC) $(LIB) -O3
 

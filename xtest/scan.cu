@@ -14,7 +14,7 @@ void SerialExclusiveScan(std::vector<uint>& out, const std::vector<uint>& in)
 }
 
 
-CUDATEST(ParallelExclusiveScan, 0)
+TEST_F(CudaTest, ParallelExclusiveScanSingle)
 {
     std::srand(time(0));
     const int numElements = 16384111;
@@ -56,7 +56,7 @@ CUDATEST(ParallelExclusiveScan, 0)
 }
 
 
-CUDATEST(ParallelExclusiveScan, 1)
+TEST_F(CudaTest, ParallelExclusiveScanMany)
 {
     const int n[] = { 128*512,
                       128*512*4,
@@ -118,17 +118,9 @@ CUDATEST(ParallelExclusiveScan, 1)
 }
 
 
-struct ScanTestList
+int main(int argc, char **argv)
 {
-    void Create(int argc, char** argv, std::vector<unsigned int>& list)
-    {
-        list.push_back(0);
-        list.push_back(1);
-    }
-};
-
-int main(int argc, char** argv)
-{
-    TestSuite<ScanTestList> suite(argc, argv);
-    TestRunner::GetInstance().RunSuite(suite);
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 }
+

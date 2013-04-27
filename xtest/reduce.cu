@@ -1,5 +1,4 @@
 #include "common/xtestrunner.h"
-#include "common/xtimer.h"
 #include <xcbb/xcbb.h>
 
 
@@ -13,7 +12,7 @@ uint SerialReduce(const std::vector<uint>& in)
 }
 
 
-CUDATEST(ParallelReduce, 0)
+TEST_F(CudaTest, ParallelReduceSingle)
 {
     std::srand(time(0));
     const int numElements = 16384111;
@@ -54,7 +53,7 @@ CUDATEST(ParallelReduce, 0)
 
 
 
-CUDATEST(ParallelReduce, 1)
+TEST_F(CudaTest, ParallelReduceMany)
 {
     const int n[] = { 128*512,
                       128*512*4,
@@ -114,17 +113,8 @@ CUDATEST(ParallelReduce, 1)
 }
 
 
-struct ReduceTestList
+int main(int argc, char **argv)
 {
-    void Create(int argc, char** argv, std::vector<unsigned int>& list)
-    {
-        list.push_back(0);
-        list.push_back(1);
-    }
-};
-
-int main(int argc, char** argv)
-{
-    TestSuite<ReduceTestList> suite(argc, argv);
-    TestRunner::GetInstance().RunSuite(suite);
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 }

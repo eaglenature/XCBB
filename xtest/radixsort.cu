@@ -1,15 +1,80 @@
 #include "common/xtestrunner.h"
-#include "common/xtimer.h"
 #include <xcbb/xcbb.h>
 
 #include <algorithm>
 
-
-CUDATEST(ParallelRadixsort, 0)
+class RadixSortTest: public CudaTest
 {
-    std::srand(time(0));
+protected:
+    RadixSortTest() {}
+    virtual ~RadixSortTest() {}
+    virtual void SetUp()
+    {
+        CudaTest::SetUp();
+        std::srand(time(0));
+    }
+    virtual void TearDown() {}
 
-    checkCudaErrors(cudaDeviceReset());
+protected:
+
+    template <int RADIX_DIGITS>
+    void CreateSample0(std::vector<uint>& data)
+    {
+        for (int i = 0; i < data.size(); ++i) data[i] = 0;
+    }
+
+    template <int RADIX_DIGITS>
+    void CreateSample1(std::vector<uint>& data)
+    {
+        for (int i = 0; i < data.size(); ++i) data[i] = (rand() % RADIX_DIGITS) << 4;
+    }
+
+    template <int RADIX_DIGITS>
+    void CreateSample2(std::vector<uint>& data)
+    {
+        for (int i = 0; i < data.size(); ++i) data[i] = (rand() % RADIX_DIGITS) << 0;
+    }
+
+    template <int RADIX_DIGITS>
+    void CreateSample3(std::vector<uint>& data)
+    {
+        for (int i = 0; i < data.size(); ++i) data[i]  = (rand() % RADIX_DIGITS) << 4;
+        for (int i = 0; i < data.size(); ++i) data[i] += (rand() % RADIX_DIGITS) << 0;
+    }
+
+    template <int RADIX_DIGITS>
+    void CreateSample4(std::vector<uint>& data)
+    {
+        for (int i = 0; i < data.size(); ++i) data[i]  = (rand() % RADIX_DIGITS) << 8;
+        for (int i = 0; i < data.size(); ++i) data[i] += (rand() % RADIX_DIGITS) << 0;
+    }
+
+    template <int RADIX_DIGITS>
+    void CreateSample5(std::vector<uint>& data)
+    {
+        for (int i = 0; i < data.size(); ++i) data[i]  = (rand() % RADIX_DIGITS) << 8;
+        for (int i = 0; i < data.size(); ++i) data[i] += (rand() % RADIX_DIGITS) << 4;
+        for (int i = 0; i < data.size(); ++i) data[i] += (rand() % RADIX_DIGITS) << 0;
+    }
+
+    template <int RADIX_DIGITS>
+    void CreateSample6(std::vector<uint>& data)
+    {
+        for (int i = 0; i < data.size(); ++i) data[i]  = (rand() % RADIX_DIGITS) << 0;
+        for (int i = 0; i < data.size(); ++i) data[i] += (rand() % RADIX_DIGITS) << 4;
+        for (int i = 0; i < data.size(); ++i) data[i] += (rand() % RADIX_DIGITS) << 8;
+        for (int i = 0; i < data.size(); ++i) data[i] += (rand() % RADIX_DIGITS) << 12;
+        for (int i = 0; i < data.size(); ++i) data[i] += (rand() % RADIX_DIGITS) << 16;
+        for (int i = 0; i < data.size(); ++i) data[i] += (rand() % RADIX_DIGITS) << 20;
+        for (int i = 0; i < data.size(); ++i) data[i] += (rand() % RADIX_DIGITS) << 24;
+        for (int i = 0; i < data.size(); ++i) data[i] += (rand() % RADIX_DIGITS) << 28;
+    }
+};
+
+
+TEST_F(RadixSortTest, RadixSort0)
+{
+    //std::srand(time(0));
 
     const int RADIX_BITS   = 4;
     const int RADIX_DIGITS = 1 << RADIX_BITS;
@@ -21,49 +86,7 @@ CUDATEST(ParallelRadixsort, 0)
     std::vector<uint> data(numElements);
     std::vector<uint> result(numElements);
 
-    // 2 PASSES
-    // T->T OK
-    //for (int i = 0; i < numElements; ++i) data[i] = 0;
-
-    // T->N OK
-    //for (int i = 0; i < numElements; ++i) data[i] = (rand() % RADIX_DIGITS) << 4;
-
-    // N->T OK
-    //for (int i = 0; i < numElements; ++i) data[i] = (rand() % RADIX_DIGITS) << 0;
-
-    // N->N  OK
-    //for (int i = 0; i < numElements; ++i) data[i] = (rand() % RADIX_DIGITS) << 4;
-    //for (int i = 0; i < numElements; ++i) data[i] += (rand() % RADIX_DIGITS) << 0;
-
-
-    // 3 PASSES
-    // T->T->T
-    //for (int i = 0; i < numElements; ++i) data[i] = 0;
-
-    // T->N->T
-    //for (int i = 0; i < numElements; ++i) data[i] = (rand() % RADIX_DIGITS) << 4;
-
-    // N->T->N
-    //for (int i = 0; i < numElements; ++i) data[i]  = (rand() % RADIX_DIGITS) << 8;
-    //for (int i = 0; i < numElements; ++i) data[i] += (rand() % RADIX_DIGITS) << 0;
-
-    // N->N-<N
-    //for (int i = 0; i < numElements; ++i) data[i]  = (rand() % RADIX_DIGITS) << 8;
-    //for (int i = 0; i < numElements; ++i) data[i] += (rand() % RADIX_DIGITS) << 4;
-    //for (int i = 0; i < numElements; ++i) data[i] += (rand() % RADIX_DIGITS) << 0;
-
-    // 8 PASSES N-> ... ->N
-    for (int i = 0; i < numElements; ++i) data[i]  = (rand() % RADIX_DIGITS) << 0;
-    for (int i = 0; i < numElements; ++i) data[i] += (rand() % RADIX_DIGITS) << 4;
-    for (int i = 0; i < numElements; ++i) data[i] += (rand() % RADIX_DIGITS) << 8;
-    for (int i = 0; i < numElements; ++i) data[i] += (rand() % RADIX_DIGITS) << 12;
-    for (int i = 0; i < numElements; ++i) data[i] += (rand() % RADIX_DIGITS) << 16;
-    for (int i = 0; i < numElements; ++i) data[i] += (rand() % RADIX_DIGITS) << 20;
-    for (int i = 0; i < numElements; ++i) data[i] += (rand() % RADIX_DIGITS) << 24;
-    for (int i = 0; i < numElements; ++i) data[i] += (rand() % RADIX_DIGITS) << 28;
-
-    // Rand
-    //for (int i = 0; i < numElements; ++i) data[i] = (rand() % 1000000);
+    CreateSample0<RADIX_DIGITS>(data);
 
     // Push array of keys to device
     uint* d_data;
@@ -73,7 +96,7 @@ CUDATEST(ParallelRadixsort, 0)
     // Reference serial sort
     std::sort(data.begin(), data.end());
 
-    // Initialize scan storage
+    // Initialize sort storage
     RadixsortStorage<uint> storage(numElements);
     storage.InitDeviceStorage(d_data);
 
@@ -97,17 +120,281 @@ CUDATEST(ParallelRadixsort, 0)
 }
 
 
-
-struct RadixsortTestList
+TEST_F(RadixSortTest, RadixSort1)
 {
-    void Create(int argc, char** argv, std::vector<unsigned int>& list)
-    {
-        list.push_back(0);
-    }
-};
+    const int RADIX_BITS   = 4;
+    const int RADIX_DIGITS = 1 << RADIX_BITS;
+    const int TILES        = 200;
 
-int main(int argc, char** argv)
+    const int numBlocks    = 128;
+    const int numElements  = numBlocks * 512 * TILES;
+
+    std::vector<uint> data(numElements);
+    std::vector<uint> result(numElements);
+
+    CreateSample1<RADIX_DIGITS>(data);
+
+    // Push array of keys to device
+    uint* d_data;
+    checkCudaErrors(cudaMalloc((void**) &d_data,    sizeof(uint) * numElements));
+    checkCudaErrors(cudaMemcpy(d_data, data.data(), sizeof(uint) * numElements, cudaMemcpyHostToDevice));
+
+    // Reference serial sort
+    std::sort(data.begin(), data.end());
+
+    // Initialize sort storage
+    RadixsortStorage<uint> storage(numElements);
+    storage.InitDeviceStorage(d_data);
+
+    // Create sort enactor
+    RadixsortEnactor<uint> sorter(numElements);
+
+    // Perform radix sort algorithm
+    CudaDeviceTimer timer;
+    timer.Start();
+    sorter.Enact(storage);
+    timer.Stop();
+
+    // Get scanned array back to host
+    checkCudaErrors(cudaMemcpy(result.data(), d_data, sizeof(uint) * numElements, cudaMemcpyDeviceToHost));
+    checkCudaErrors(cudaFree(d_data));
+
+    // Compare with reference solution
+    EQUAL_RANGES(data, result);
+    printf("Problem:    %d\n", numElements);
+    printf("Time:       %.3f [ms]\n", timer.ElapsedTime());
+}
+
+
+TEST_F(RadixSortTest, RadixSort2)
 {
-    TestSuite<RadixsortTestList> suite(argc, argv);
-    TestRunner::GetInstance().RunSuite(suite);
+    const int RADIX_BITS   = 4;
+    const int RADIX_DIGITS = 1 << RADIX_BITS;
+    const int TILES        = 200;
+
+    const int numBlocks    = 128;
+    const int numElements  = numBlocks * 512 * TILES;
+
+    std::vector<uint> data(numElements);
+    std::vector<uint> result(numElements);
+
+    CreateSample2<RADIX_DIGITS>(data);
+
+    // Push array of keys to device
+    uint* d_data;
+    checkCudaErrors(cudaMalloc((void**) &d_data,    sizeof(uint) * numElements));
+    checkCudaErrors(cudaMemcpy(d_data, data.data(), sizeof(uint) * numElements, cudaMemcpyHostToDevice));
+
+    // Reference serial sort
+    std::sort(data.begin(), data.end());
+
+    // Initialize sort storage
+    RadixsortStorage<uint> storage(numElements);
+    storage.InitDeviceStorage(d_data);
+
+    // Create sort enactor
+    RadixsortEnactor<uint> sorter(numElements);
+
+    // Perform radix sort algorithm
+    CudaDeviceTimer timer;
+    timer.Start();
+    sorter.Enact(storage);
+    timer.Stop();
+
+    // Get scanned array back to host
+    checkCudaErrors(cudaMemcpy(result.data(), d_data, sizeof(uint) * numElements, cudaMemcpyDeviceToHost));
+    checkCudaErrors(cudaFree(d_data));
+
+    // Compare with reference solution
+    EQUAL_RANGES(data, result);
+    printf("Problem:    %d\n", numElements);
+    printf("Time:       %.3f [ms]\n", timer.ElapsedTime());
+}
+
+
+TEST_F(RadixSortTest, RadixSort3)
+{
+    const int RADIX_BITS   = 4;
+    const int RADIX_DIGITS = 1 << RADIX_BITS;
+    const int TILES        = 200;
+
+    const int numBlocks    = 128;
+    const int numElements  = numBlocks * 512 * TILES;
+
+    std::vector<uint> data(numElements);
+    std::vector<uint> result(numElements);
+
+    CreateSample3<RADIX_DIGITS>(data);
+
+    // Push array of keys to device
+    uint* d_data;
+    checkCudaErrors(cudaMalloc((void**) &d_data,    sizeof(uint) * numElements));
+    checkCudaErrors(cudaMemcpy(d_data, data.data(), sizeof(uint) * numElements, cudaMemcpyHostToDevice));
+
+    // Reference serial sort
+    std::sort(data.begin(), data.end());
+
+    // Initialize sort storage
+    RadixsortStorage<uint> storage(numElements);
+    storage.InitDeviceStorage(d_data);
+
+    // Create sort enactor
+    RadixsortEnactor<uint> sorter(numElements);
+
+    // Perform radix sort algorithm
+    CudaDeviceTimer timer;
+    timer.Start();
+    sorter.Enact(storage);
+    timer.Stop();
+
+    // Get scanned array back to host
+    checkCudaErrors(cudaMemcpy(result.data(), d_data, sizeof(uint) * numElements, cudaMemcpyDeviceToHost));
+    checkCudaErrors(cudaFree(d_data));
+
+    // Compare with reference solution
+    EQUAL_RANGES(data, result);
+    printf("Problem:    %d\n", numElements);
+    printf("Time:       %.3f [ms]\n", timer.ElapsedTime());
+}
+
+TEST_F(RadixSortTest, RadixSort4)
+{
+    const int RADIX_BITS   = 4;
+    const int RADIX_DIGITS = 1 << RADIX_BITS;
+    const int TILES        = 200;
+
+    const int numBlocks    = 128;
+    const int numElements  = numBlocks * 512 * TILES;
+
+    std::vector<uint> data(numElements);
+    std::vector<uint> result(numElements);
+
+    CreateSample4<RADIX_DIGITS>(data);
+
+    // Push array of keys to device
+    uint* d_data;
+    checkCudaErrors(cudaMalloc((void**) &d_data,    sizeof(uint) * numElements));
+    checkCudaErrors(cudaMemcpy(d_data, data.data(), sizeof(uint) * numElements, cudaMemcpyHostToDevice));
+
+    // Reference serial sort
+    std::sort(data.begin(), data.end());
+
+    // Initialize sort storage
+    RadixsortStorage<uint> storage(numElements);
+    storage.InitDeviceStorage(d_data);
+
+    // Create sort enactor
+    RadixsortEnactor<uint> sorter(numElements);
+
+    // Perform radix sort algorithm
+    CudaDeviceTimer timer;
+    timer.Start();
+    sorter.Enact(storage);
+    timer.Stop();
+
+    // Get scanned array back to host
+    checkCudaErrors(cudaMemcpy(result.data(), d_data, sizeof(uint) * numElements, cudaMemcpyDeviceToHost));
+    checkCudaErrors(cudaFree(d_data));
+
+    // Compare with reference solution
+    EQUAL_RANGES(data, result);
+    printf("Problem:    %d\n", numElements);
+    printf("Time:       %.3f [ms]\n", timer.ElapsedTime());
+}
+
+TEST_F(RadixSortTest, RadixSort5)
+{
+    const int RADIX_BITS   = 4;
+    const int RADIX_DIGITS = 1 << RADIX_BITS;
+    const int TILES        = 200;
+
+    const int numBlocks    = 128;
+    const int numElements  = numBlocks * 512 * TILES;
+
+    std::vector<uint> data(numElements);
+    std::vector<uint> result(numElements);
+
+    CreateSample5<RADIX_DIGITS>(data);
+
+    // Push array of keys to device
+    uint* d_data;
+    checkCudaErrors(cudaMalloc((void**) &d_data,    sizeof(uint) * numElements));
+    checkCudaErrors(cudaMemcpy(d_data, data.data(), sizeof(uint) * numElements, cudaMemcpyHostToDevice));
+
+    // Reference serial sort
+    std::sort(data.begin(), data.end());
+
+    // Initialize sort storage
+    RadixsortStorage<uint> storage(numElements);
+    storage.InitDeviceStorage(d_data);
+
+    // Create sort enactor
+    RadixsortEnactor<uint> sorter(numElements);
+
+    // Perform radix sort algorithm
+    CudaDeviceTimer timer;
+    timer.Start();
+    sorter.Enact(storage);
+    timer.Stop();
+
+    // Get scanned array back to host
+    checkCudaErrors(cudaMemcpy(result.data(), d_data, sizeof(uint) * numElements, cudaMemcpyDeviceToHost));
+    checkCudaErrors(cudaFree(d_data));
+
+    // Compare with reference solution
+    EQUAL_RANGES(data, result);
+    printf("Problem:    %d\n", numElements);
+    printf("Time:       %.3f [ms]\n", timer.ElapsedTime());
+}
+
+TEST_F(RadixSortTest, RadixSort6)
+{
+    const int RADIX_BITS   = 4;
+    const int RADIX_DIGITS = 1 << RADIX_BITS;
+    const int TILES        = 200;
+
+    const int numBlocks    = 128;
+    const int numElements  = numBlocks * 512 * TILES;
+
+    std::vector<uint> data(numElements);
+    std::vector<uint> result(numElements);
+
+    CreateSample6<RADIX_DIGITS>(data);
+
+    // Push array of keys to device
+    uint* d_data;
+    checkCudaErrors(cudaMalloc((void**) &d_data,    sizeof(uint) * numElements));
+    checkCudaErrors(cudaMemcpy(d_data, data.data(), sizeof(uint) * numElements, cudaMemcpyHostToDevice));
+
+    // Reference serial sort
+    std::sort(data.begin(), data.end());
+
+    // Initialize sort storage
+    RadixsortStorage<uint> storage(numElements);
+    storage.InitDeviceStorage(d_data);
+
+    // Create sort enactor
+    RadixsortEnactor<uint> sorter(numElements);
+
+    // Perform radix sort algorithm
+    CudaDeviceTimer timer;
+    timer.Start();
+    sorter.Enact(storage);
+    timer.Stop();
+
+    // Get scanned array back to host
+    checkCudaErrors(cudaMemcpy(result.data(), d_data, sizeof(uint) * numElements, cudaMemcpyDeviceToHost));
+    checkCudaErrors(cudaFree(d_data));
+
+    // Compare with reference solution
+    EQUAL_RANGES(data, result);
+    printf("Problem:    %d\n", numElements);
+    printf("Time:       %.3f [ms]\n", timer.ElapsedTime());
+}
+
+
+int main(int argc, char **argv)
+{
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 }
