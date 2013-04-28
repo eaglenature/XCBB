@@ -336,12 +336,13 @@ void BlockReduction(
 
 
 
-template <int RADIX_DIGITS,
-          int CURRENT_BIT,
-          int NUM_ELEMENTS_PER_THREAD,
-          int RAKING_THREADS,
-          int RAKING_SEGMENT,
-          int WARPSYNC_SCAN_THREADS>
+template <bool FULL_TILE_LOAD,
+          int  RADIX_DIGITS,
+          int  CURRENT_BIT,
+          int  NUM_ELEMENTS_PER_THREAD,
+          int  RAKING_THREADS,
+          int  RAKING_SEGMENT,
+          int  WARPSYNC_SCAN_THREADS>
 __device__ __forceinline__
 void TileScanAndScatter(
         uint *d_outKeys,
@@ -356,6 +357,7 @@ void TileScanAndScatter(
         int* const thread_base,
         int* raking_base,
         int blockDataOffset,
+        int numElementsExtra,
         int tile)
 {
 
@@ -371,10 +373,26 @@ void TileScanAndScatter(
     int2  flagoffsets[2];
     int2  ranks[2];
 
-    uint2* d_inKeysPtr = reinterpret_cast<uint2*>(d_inKeys + blockDataOffset + GetTileDataOffset<NUM_ELEMENTS_PER_THREAD>(tile));
+    if (FULL_TILE_LOAD)
+    {
+        uint2* d_inKeysPtr = reinterpret_cast<uint2*>(d_inKeys + blockDataOffset + GetTileDataOffset<NUM_ELEMENTS_PER_THREAD>(tile));
 
-    keys[0] = d_inKeysPtr[threadIdx.x + 0 * NUM_THREADS];
-    keys[1] = d_inKeysPtr[threadIdx.x + 1 * NUM_THREADS];
+        keys[0] = d_inKeysPtr[threadIdx.x + 0 * NUM_THREADS];
+        keys[1] = d_inKeysPtr[threadIdx.x + 1 * NUM_THREADS];
+    }
+    else // Guarded loads
+    {
+        int offset;
+        uint* d_inKeysPtr = d_inKeys + blockDataOffset;
+
+        offset = (threadIdx.x << 1) + 0 * (NUM_THREADS << 1);
+        keys[0].x = (offset + 0 - numElementsExtra < 0) ? d_inKeysPtr[offset + 0] : (uint) -1u;
+        keys[0].y = (offset + 1 - numElementsExtra < 0) ? d_inKeysPtr[offset + 1] : (uint) -1u;
+
+        offset = (threadIdx.x << 1) + 1 * (NUM_THREADS << 1);
+        keys[1].x = (offset + 0 - numElementsExtra < 0) ? d_inKeysPtr[offset + 0] : (uint) -1u;
+        keys[1].y = (offset + 1 - numElementsExtra < 0) ? d_inKeysPtr[offset + 1] : (uint) -1u;
+    }
 
     // decode keys
     digits[0].x = (keys[0].x >> CURRENT_BIT) & 0xf;
@@ -445,6 +463,7 @@ void TileScanAndScatter(
         counts[1] = counts[0];
         counts[0] = 0;
 
+
         digit_count[0][threadIdx.x] = counts[0];
         digit_count[1][threadIdx.x] = counts[1];
 
@@ -487,10 +506,20 @@ void TileScanAndScatter(
 
     __syncthreads();
 
-    d_outKeys[offsets[0].x] = keys[0].x;
-    d_outKeys[offsets[0].y] = keys[0].y;
-    d_outKeys[offsets[1].x] = keys[1].x;
-    d_outKeys[offsets[1].y] = keys[1].y;
+    if (FULL_TILE_LOAD)
+    {
+        d_outKeys[offsets[0].x] = keys[0].x;
+        d_outKeys[offsets[0].y] = keys[0].y;
+        d_outKeys[offsets[1].x] = keys[1].x;
+        d_outKeys[offsets[1].y] = keys[1].y;
+    }
+    else // Guarded stores
+    {
+        if (threadIdx.x + 0 * NUM_THREADS < numElementsExtra) d_outKeys[offsets[0].x] = keys[0].x;
+        if (threadIdx.x + 1 * NUM_THREADS < numElementsExtra) d_outKeys[offsets[0].y] = keys[0].y;
+        if (threadIdx.x + 2 * NUM_THREADS < numElementsExtra) d_outKeys[offsets[1].x] = keys[1].x;
+        if (threadIdx.x + 3 * NUM_THREADS < numElementsExtra) d_outKeys[offsets[1].y] = keys[1].y;
+    }
 
     if (threadIdx.x < RADIX_DIGITS)
     {
@@ -519,8 +548,9 @@ void BlockScanAndScatter(
     const int BN = work.numTilesPerBlock;
     const int B  = (block < work.numLargeBlocks) ? BL : BN;
 
-    const int precedingTiles  = (block < work.numLargeBlocks) ? (block * BL) : (block * BN + work.numLargeBlocks * (BL - BN));
-    const int blockDataOffset = GetBlockDataOffset<NUM_ELEMENTS_PER_THREAD>(precedingTiles);
+    const int precedingTiles   = (block < work.numLargeBlocks) ? (block * BL) : (block * BN + work.numLargeBlocks * (BL - BN));
+    const int blockDataOffset  = GetBlockDataOffset<NUM_ELEMENTS_PER_THREAD>(precedingTiles);
+    const int numElementsExtra = (blockIdx.x == gridDim.x - 1) ? work.numElementsExtra : 0;
 
     const int RADIX_DIGITS          = 1 << RADIX_BITS;
     const int RAKING_THREADS        = 32 * 2;
@@ -591,17 +621,18 @@ void BlockScanAndScatter(
     // Exit early if trivial pass detected
     if (trivial_pass) return;
 
+    // Swap global pointers if needed
     if (swap)
     {
-        uint* p = d_inKeys;
-        d_inKeys = d_outKeys;
-        d_outKeys = p;
+        uint* tmp = d_inKeys;
+        d_inKeys  = d_outKeys;
+        d_outKeys = tmp;
     }
 
     // Process full tiles
     for (int tile = 0; tile < B; ++tile)
     {
-        TileScanAndScatter<RADIX_DIGITS, CURRENT_BIT, NUM_ELEMENTS_PER_THREAD, RAKING_THREADS, RAKING_SEGMENT, WARPSYNC_SCAN_THREADS>(
+        TileScanAndScatter<true, RADIX_DIGITS, CURRENT_BIT, NUM_ELEMENTS_PER_THREAD, RAKING_THREADS, RAKING_SEGMENT, WARPSYNC_SCAN_THREADS>(
                 d_outKeys,
                 d_inKeys,
                 scan_storage,
@@ -614,7 +645,27 @@ void BlockScanAndScatter(
                 thread_base,
                 raking_base,
                 blockDataOffset,
+                numElementsExtra,
                 tile);
+    }
+    // Last block process extra elements if any
+    if (numElementsExtra)
+    {
+        TileScanAndScatter<false, RADIX_DIGITS, CURRENT_BIT, NUM_ELEMENTS_PER_THREAD, RAKING_THREADS, RAKING_SEGMENT, WARPSYNC_SCAN_THREADS>(
+                d_outKeys,
+                d_inKeys,
+                scan_storage,
+                warp_storage,
+                digit_scan,
+                digit_count,
+                digit_total,
+                block_total,
+                carry_total,
+                thread_base,
+                raking_base,
+                work.numFullTiles * work.numElementsPerTile,
+                numElementsExtra,
+                0);
     }
 }
 

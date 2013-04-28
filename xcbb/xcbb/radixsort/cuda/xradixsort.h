@@ -93,7 +93,7 @@ void SpineKernel(
 
     if (threadIdx.x == 0)
     {
-        ScanSegment(shared_totals, RADIX_DIGITS); // TODO change to template
+        ScanSegment<RADIX_DIGITS>(shared_totals);
     }
 
     __syncthreads();
