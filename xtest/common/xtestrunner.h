@@ -87,6 +87,7 @@ template <>
 struct IsFloatingPointType<double>
 { static const bool value = true; };
 
+
 /**
  * Int to Type map
  */
@@ -96,64 +97,65 @@ struct Int2Type
 
 
 /**
- * Asserts and Expects for arrays of integgral or floating-point elements
+ * Asserts and Expects for arrays of integral and floating-point elements
  */
 
 enum { IntegralExpect, FloatingPointExpect, UnknownExpect };
 
 
 template <typename T>
-void AssertRangeEq(const std::vector<T>& expected, const std::vector<T>& actual, Int2Type<IntegralExpect>)
+void AssertRangeEq(const std::vector<T>& expected, const std::vector<T>& actual, const char* const file, const int line, Int2Type<IntegralExpect>)
 {
-    for (int i = 0; i < actual.size(); ++i)
+    for (size_t i = 0; i < actual.size(); ++i)
     {
-        ASSERT_EQ(expected[i], actual[i]);
+        ASSERT_EQ(expected[i], actual[i]) << " Element: " << i << "\n" << file << ":" << line << '\n';
     }
 }
 
 template <typename T>
-void AssertRangeEq(const std::vector<T>& expected, const std::vector<T>& actual, Int2Type<FloatingPointExpect>)
+void AssertRangeEq(const std::vector<T>& expected, const std::vector<T>& actual, const char* const file, const int line, Int2Type<FloatingPointExpect>)
 {
-    for (int i = 0; i < actual.size(); ++i)
+    for (size_t i = 0; i < actual.size(); ++i)
     {
-        ASSERT_NEAR(expected[i], actual[i], 0.00001);
+        ASSERT_NEAR(expected[i], actual[i], 0.0001) << " Element: " << i << "\n" << file << ":" << line << '\n';
     }
 }
 
-
 template <typename T>
-void ExpectRangeEq(const std::vector<T>& expected, const std::vector<T>& actual, Int2Type<IntegralExpect>)
+void ExpectRangeEq(const std::vector<T>& expected, const std::vector<T>& actual, const char* const file, const int line, Int2Type<IntegralExpect>)
 {
-    for (int i = 0; i < actual.size(); ++i)
+    for (size_t i = 0; i < actual.size(); ++i)
     {
         EXPECT_EQ(expected[i], actual[i]);
     }
 }
 
 template <typename T>
-void ExpectRangeEq(const std::vector<T>& expected, const std::vector<T>& actual, Int2Type<FloatingPointExpect>)
+void ExpectRangeEq(const std::vector<T>& expected, const std::vector<T>& actual, const char* const file, const int line, Int2Type<FloatingPointExpect>)
 {
-    for (int i = 0; i < actual.size(); ++i)
+    for (size_t i = 0; i < actual.size(); ++i)
     {
-        EXPECT_NEAR(expected[i], actual[i], 0.00001);
+        EXPECT_NEAR(expected[i], actual[i], 0.0001);
     }
 }
 
-
 template <typename T>
-void ASSERT_RANGE_EQ(const std::vector<T>& expected, const std::vector<T>& actual)
+void ASSERT_RANGE_EQ(const std::vector<T>& expected, const std::vector<T>& actual, const char* const file, const int line)
 {
     enum { ExpectType = IsFloatingPointType<T>::value ? FloatingPointExpect : (IsIntegralType<T>::value ? IntegralExpect : UnknownExpect) };
-    AssertRangeEq(expected, actual, Int2Type<ExpectType>());
+    AssertRangeEq(expected, actual, file, line, Int2Type<ExpectType>());
+}
+
+template <typename T>
+void EXPECT_RANGE_EQ(const std::vector<T>& expected, const std::vector<T>& actual, const char* const file, const int line)
+{
+    enum { ExpectType = IsFloatingPointType<T>::value ? FloatingPointExpect : (IsIntegralType<T>::value ? IntegralExpect : UnknownExpect) };
+    ExpectRangeEq(expected, actual, file, line, Int2Type<ExpectType>());
 }
 
 
-template <typename T>
-void EXPECT_RANGE_EQ(const std::vector<T>& expected, const std::vector<T>& actual)
-{
-    enum { ExpectType = IsFloatingPointType<T>::value ? FloatingPointExpect : (IsIntegralType<T>::value ? IntegralExpect : UnknownExpect) };
-    ExpectRangeEq(expected, actual, Int2Type<ExpectType>());
-}
+#define ASSERT_RANGE_EQ(expected, actual) ASSERT_RANGE_EQ((expected), (actual), __FILE__, __LINE__)
+#define EXPECT_RANGE_EQ(expected, actual) EXPECT_RANGE_EQ((expected), (actual), __FILE__, __LINE__)
 
 
 #endif /* XTESTRUNNER_H_ */
