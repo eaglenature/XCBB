@@ -3,20 +3,34 @@
 #include <xcbb/xcbb.h>
 
 
-void SerialExclusiveScan(std::vector<uint>& out, const std::vector<uint>& in)
+class ScanTest: public CudaTest
 {
-    uint sum = 0;
-    for (int i = 0;  i < in.size(); ++i) {
-        uint x = in[i];
-        out[i] = sum;
-        sum += x;
+protected:
+    ScanTest() {}
+    virtual ~ScanTest() {}
+    virtual void SetUp()
+    {
+        CudaTest::SetUp();
+        std::srand(time(0));
     }
-}
+    virtual void TearDown() {}
+
+protected:
+    void SerialExclusiveScan(std::vector<uint>& out, const std::vector<uint>& in)
+    {
+        uint sum = 0;
+        for (int i = 0; i < in.size(); ++i)
+        {
+            uint x = in[i];
+            out[i] = sum;
+            sum += x;
+        }
+    }
+};
 
 
-TEST_F(CudaTest, ParallelExclusiveScanSingle)
+TEST_F(ScanTest, ParallelExclusiveScanSingle)
 {
-    std::srand(time(0));
     const int numElements = 16384111;
 
     std::vector<uint> data(numElements);
@@ -50,13 +64,13 @@ TEST_F(CudaTest, ParallelExclusiveScanSingle)
     checkCudaErrors(cudaMemcpy(result.data(), d_data, sizeof(uint) * numElements, cudaMemcpyDeviceToHost));
     checkCudaErrors(cudaFree(d_data));
 
-    EQUAL_RANGES(data, result);
+    EXPECT_RANGE_EQ(data, result);
     printf("Problem:    %d\n", numElements);
     printf("Time:       %.3f [ms]\n", timer.ElapsedTime());
 }
 
 
-TEST_F(CudaTest, ParallelExclusiveScanMany)
+TEST_F(ScanTest, ParallelExclusiveScanMany)
 {
     const int n[] = { 128*512,
                       128*512*4,
@@ -71,10 +85,10 @@ TEST_F(CudaTest, ParallelExclusiveScanMany)
                       128*512 + 512 + 2*128,
                       128*512 + 60*512 + 3*128 + 65};
 
-    std::srand(time(0));
+
     int numElements = 0;
 
-    for (int isize = 0; isize < sizeof(n)/sizeof(n[0]); isize++)
+    for (int isize = 0; isize < sizeof(n)/sizeof(n[0]); ++isize)
     {
         numElements = n[isize];
 
@@ -109,7 +123,7 @@ TEST_F(CudaTest, ParallelExclusiveScanMany)
         checkCudaErrors(cudaMemcpy(result.data(), d_data, sizeof(uint) * numElements, cudaMemcpyDeviceToHost));
         checkCudaErrors(cudaFree(d_data));
 
-        EQUAL_RANGES(data, result);
+        EXPECT_RANGE_EQ(data, result);
         printf("====================================================================================\n");
         printf("Problem:    %d\n", numElements);
         printf("Time:       %.3f [ms]\n", timer.ElapsedTime());

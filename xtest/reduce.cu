@@ -1,18 +1,33 @@
 #include "common/xtestrunner.h"
 #include <xcbb/xcbb.h>
 
-
-uint SerialReduce(const std::vector<uint>& in)
+class ReduceTest: public CudaTest
 {
-    uint reduce = 0;
-    for (int i = 0;  i < in.size(); ++i) {
-        reduce += in[i];
+protected:
+    ReduceTest() {}
+    virtual ~ReduceTest() {}
+    virtual void SetUp()
+    {
+        CudaTest::SetUp();
+        std::srand(time(0));
     }
-    return reduce;
-}
+    virtual void TearDown() {}
+
+protected:
+    uint SerialReduce(const std::vector<uint>& segment)
+    {
+        uint reduce = 0;
+        for (int i = 0;  i < segment.size(); ++i)
+        {
+            reduce += segment[i];
+        }
+        return reduce;
+    }
+};
 
 
-TEST_F(CudaTest, ParallelReduceSingle)
+
+TEST_F(ReduceTest, ParallelReduceSingle)
 {
     std::srand(time(0));
     const int numElements = 16384111;
@@ -45,7 +60,7 @@ TEST_F(CudaTest, ParallelReduceSingle)
 
     checkCudaErrors(cudaFree(d_data));
 
-    EQUAL(serialReduce, deviceResult);
+    EXPECT_EQ(serialReduce, deviceResult);
     printf("Results:    %d  %d\n", serialReduce, deviceResult);
     printf("Problem:    %d\n", numElements);
     printf("Time:       %.3f [ms]\n", timer.ElapsedTime());
@@ -53,7 +68,7 @@ TEST_F(CudaTest, ParallelReduceSingle)
 
 
 
-TEST_F(CudaTest, ParallelReduceMany)
+TEST_F(ReduceTest, ParallelReduceMany)
 {
     const int n[] = { 128*512,
                       128*512*4,
@@ -68,7 +83,6 @@ TEST_F(CudaTest, ParallelReduceMany)
                       128*512 + 512 + 2*128,
                       128*512 + 60*512 + 3*128 + 65};
 
-    std::srand(time(0));
     int numElements = 0;
 
     for (int isize = 0; isize < sizeof(n)/sizeof(n[0]); isize++)
@@ -103,7 +117,7 @@ TEST_F(CudaTest, ParallelReduceMany)
 
         checkCudaErrors(cudaFree(d_data));
 
-        EQUAL(serialReduce, deviceResult);
+        EXPECT_EQ(serialReduce, deviceResult);
         printf("====================================================================================\n");
         printf("Results:    %d  %d\n", serialReduce, deviceResult);
         printf("Problem:    %d\n", numElements);

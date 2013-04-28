@@ -1,7 +1,8 @@
 #include "common/xtestrunner.h"
+#include <algorithm>
+
 #include <xcbb/xcbb.h>
 
-#include <algorithm>
 
 class RadixSortTest: public CudaTest
 {
@@ -74,8 +75,6 @@ protected:
 
 TEST_F(RadixSortTest, RadixSort0)
 {
-    //std::srand(time(0));
-
     const int RADIX_BITS   = 4;
     const int RADIX_DIGITS = 1 << RADIX_BITS;
     const int TILES        = 200;
@@ -85,6 +84,9 @@ TEST_F(RadixSortTest, RadixSort0)
 
     std::vector<uint> data(numElements);
     std::vector<uint> result(numElements);
+
+    ASSERT_EQ(numElements, data.size());
+    ASSERT_EQ(numElements, result.size());
 
     CreateSample0<RADIX_DIGITS>(data);
 
@@ -114,7 +116,7 @@ TEST_F(RadixSortTest, RadixSort0)
     checkCudaErrors(cudaFree(d_data));
 
     // Compare with reference solution
-    EQUAL_RANGES(data, result);
+    EXPECT_RANGE_EQ(data, result);
     printf("Problem:    %d\n", numElements);
     printf("Time:       %.3f [ms]\n", timer.ElapsedTime());
 }
@@ -131,6 +133,9 @@ TEST_F(RadixSortTest, RadixSort1)
 
     std::vector<uint> data(numElements);
     std::vector<uint> result(numElements);
+
+    ASSERT_EQ(numElements, data.size());
+    ASSERT_EQ(numElements, result.size());
 
     CreateSample1<RADIX_DIGITS>(data);
 
@@ -160,7 +165,7 @@ TEST_F(RadixSortTest, RadixSort1)
     checkCudaErrors(cudaFree(d_data));
 
     // Compare with reference solution
-    EQUAL_RANGES(data, result);
+    EXPECT_RANGE_EQ(data, result);
     printf("Problem:    %d\n", numElements);
     printf("Time:       %.3f [ms]\n", timer.ElapsedTime());
 }
@@ -177,6 +182,9 @@ TEST_F(RadixSortTest, RadixSort2)
 
     std::vector<uint> data(numElements);
     std::vector<uint> result(numElements);
+
+    ASSERT_EQ(numElements, data.size());
+    ASSERT_EQ(numElements, result.size());
 
     CreateSample2<RADIX_DIGITS>(data);
 
@@ -206,7 +214,7 @@ TEST_F(RadixSortTest, RadixSort2)
     checkCudaErrors(cudaFree(d_data));
 
     // Compare with reference solution
-    EQUAL_RANGES(data, result);
+    EXPECT_RANGE_EQ(data, result);
     printf("Problem:    %d\n", numElements);
     printf("Time:       %.3f [ms]\n", timer.ElapsedTime());
 }
@@ -223,6 +231,9 @@ TEST_F(RadixSortTest, RadixSort3)
 
     std::vector<uint> data(numElements);
     std::vector<uint> result(numElements);
+
+    ASSERT_EQ(numElements, data.size());
+    ASSERT_EQ(numElements, result.size());
 
     CreateSample3<RADIX_DIGITS>(data);
 
@@ -252,7 +263,7 @@ TEST_F(RadixSortTest, RadixSort3)
     checkCudaErrors(cudaFree(d_data));
 
     // Compare with reference solution
-    EQUAL_RANGES(data, result);
+    EXPECT_RANGE_EQ(data, result);
     printf("Problem:    %d\n", numElements);
     printf("Time:       %.3f [ms]\n", timer.ElapsedTime());
 }
@@ -268,6 +279,9 @@ TEST_F(RadixSortTest, RadixSort4)
 
     std::vector<uint> data(numElements);
     std::vector<uint> result(numElements);
+
+    ASSERT_EQ(numElements, data.size());
+    ASSERT_EQ(numElements, result.size());
 
     CreateSample4<RADIX_DIGITS>(data);
 
@@ -297,7 +311,7 @@ TEST_F(RadixSortTest, RadixSort4)
     checkCudaErrors(cudaFree(d_data));
 
     // Compare with reference solution
-    EQUAL_RANGES(data, result);
+    EXPECT_RANGE_EQ(data, result);
     printf("Problem:    %d\n", numElements);
     printf("Time:       %.3f [ms]\n", timer.ElapsedTime());
 }
@@ -313,6 +327,9 @@ TEST_F(RadixSortTest, RadixSort5)
 
     std::vector<uint> data(numElements);
     std::vector<uint> result(numElements);
+
+    ASSERT_EQ(numElements, data.size());
+    ASSERT_EQ(numElements, result.size());
 
     CreateSample5<RADIX_DIGITS>(data);
 
@@ -342,7 +359,7 @@ TEST_F(RadixSortTest, RadixSort5)
     checkCudaErrors(cudaFree(d_data));
 
     // Compare with reference solution
-    EQUAL_RANGES(data, result);
+    EXPECT_RANGE_EQ(data, result);
     printf("Problem:    %d\n", numElements);
     printf("Time:       %.3f [ms]\n", timer.ElapsedTime());
 }
@@ -358,6 +375,9 @@ TEST_F(RadixSortTest, RadixSort6)
 
     std::vector<uint> data(numElements);
     std::vector<uint> result(numElements);
+
+    ASSERT_EQ(numElements, data.size());
+    ASSERT_EQ(numElements, result.size());
 
     CreateSample6<RADIX_DIGITS>(data);
 
@@ -387,7 +407,7 @@ TEST_F(RadixSortTest, RadixSort6)
     checkCudaErrors(cudaFree(d_data));
 
     // Compare with reference solution
-    EQUAL_RANGES(data, result);
+    EXPECT_RANGE_EQ(data, result);
     printf("Problem:    %d\n", numElements);
     printf("Time:       %.3f [ms]\n", timer.ElapsedTime());
 }
