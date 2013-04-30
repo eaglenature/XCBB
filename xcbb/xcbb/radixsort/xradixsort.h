@@ -14,25 +14,30 @@
 
 
 
-template <typename Key>
+template <typename Key, typename Value = NoValue>
 struct RadixsortStorage
 {
     Key   *d_inKeys;
     Key   *d_outKeys;
+    Value *d_inValues;
+    Value *d_outValues;
     int   *d_spine;
     bool  *d_swap;
     int    numElements;
 
-    __forceinline__ void InitDeviceStorage(Key* inKeys)
+    __forceinline__ void InitDeviceStorage(Key* inKeys, Value* inValues = 0)
     {
         d_inKeys = inKeys;
+        d_inValues = inValues;
         checkCudaErrors(cudaMalloc((void**) &d_outKeys, sizeof(Key) * numElements));
+        if (!IsKeyOnly<Value>::value) checkCudaErrors(cudaMalloc((void**) &d_outValues, sizeof(Value) * numElements));
         checkCudaErrors(cudaMalloc((void**) &d_swap, sizeof(bool) * 2));
     }
 
     __forceinline__ void ReleaseDeviceStorage()
     {
         if (d_outKeys) checkCudaErrors(cudaFree(d_outKeys));
+        if (d_outValues) checkCudaErrors(cudaFree(d_outValues));
         if (d_spine) checkCudaErrors(cudaFree(d_spine));
         if (d_swap) checkCudaErrors(cudaFree(d_swap));
     }
@@ -40,6 +45,8 @@ struct RadixsortStorage
     explicit RadixsortStorage(int numElements)
         : d_inKeys(0)
         , d_outKeys(0)
+        , d_inValues(0)
+        , d_outValues(0)
         , d_spine(0)
         , d_swap(0)
         , numElements(numElements)
@@ -53,7 +60,7 @@ struct RadixsortStorage
 };
 
 
-template <typename Key>
+template <typename Key, typename Value = NoValue>
 class RadixsortEnactor
 {
 private:
@@ -67,17 +74,17 @@ private:
     RadixsortWorkDecomposition _regularWorkload;
 
     template<int PASS, int RADIX_BITS, int CURRENT_BIT>
-    __forceinline__ cudaError_t DistributionSortPass(RadixsortStorage<Key>& storage);
+    __forceinline__ cudaError_t DistributionSortPass(RadixsortStorage<Key, Value>& storage);
 
 public:
 
     explicit RadixsortEnactor(int numElements);
-    __forceinline__ cudaError_t Enact(RadixsortStorage<Key>& storage);
+    __forceinline__ cudaError_t Enact(RadixsortStorage<Key, Value>& storage);
 };
 
 
-template <typename Key>
-RadixsortEnactor<Key>::RadixsortEnactor(int numElements)
+template <typename Key, typename Value>
+RadixsortEnactor<Key, Value>::RadixsortEnactor(int numElements)
     : _numElements(numElements)
     , _numBlocks(128)
     , _numThreads(128)
@@ -88,8 +95,8 @@ RadixsortEnactor<Key>::RadixsortEnactor(int numElements)
 }
 
 
-template <typename Key>
-cudaError_t RadixsortEnactor<Key>::Enact(RadixsortStorage<Key>& storage)
+template <typename Key, typename Value>
+cudaError_t RadixsortEnactor<Key, Value>::Enact(RadixsortStorage<Key, Value>& storage)
 {
     const int PASSES = 8;
     checkCudaErrors(cudaMalloc((void**) &storage.d_spine, sizeof(int) * _numSpineElements));
@@ -109,16 +116,20 @@ cudaError_t RadixsortEnactor<Key>::Enact(RadixsortStorage<Key>& storage)
     if (needSwap)
     {
         checkCudaErrors(cudaMemcpy(storage.d_inKeys, storage.d_outKeys, sizeof(Key) * _numElements, cudaMemcpyDeviceToDevice));
+        if (!IsKeyOnly<Value>::value)
+        {
+            checkCudaErrors(cudaMemcpy(storage.d_inValues, storage.d_outValues, sizeof(Value) * _numElements, cudaMemcpyDeviceToDevice));
+        }
     }
     return cudaSuccess;
 }
 
-template <typename Key>
+template <typename Key, typename Value>
 template <int PASS, int RADIX_BITS, int CURRENT_BIT>
-cudaError_t RadixsortEnactor<Key>::DistributionSortPass(RadixsortStorage<Key>& storage)
+cudaError_t RadixsortEnactor<Key, Value>::DistributionSortPass(RadixsortStorage<Key, Value>& storage)
 {
 
-    ReductionKernel<PASS, RADIX_BITS, CURRENT_BIT, 4, 4><<<_numBlocks, _numThreads>>>(
+    ReductionKernel<Key, PASS, RADIX_BITS, CURRENT_BIT, 4, 4><<<_numBlocks, _numThreads>>>(
             storage.d_swap,
             storage.d_spine,
             storage.d_outKeys,
@@ -133,11 +144,13 @@ cudaError_t RadixsortEnactor<Key>::DistributionSortPass(RadixsortStorage<Key>& s
     synchronizeIfEnabled("SpineKernel");
 
 
-    ScanAndScatterKernel<PASS, RADIX_BITS, CURRENT_BIT, 4, 4><<<_numBlocks, _numThreads>>>(
+    ScanAndScatterKernel<Key, Value, PASS, RADIX_BITS, CURRENT_BIT, 4, 4><<<_numBlocks, _numThreads>>>(
             storage.d_swap,
             storage.d_spine,
             storage.d_outKeys,
             storage.d_inKeys,
+            storage.d_outValues,
+            storage.d_inValues,
             _regularWorkload);
     synchronizeIfEnabled("ScanAndScatterKernel");
 

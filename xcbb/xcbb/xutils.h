@@ -10,11 +10,46 @@
 
 #define WARP_SIZE 32
 
+
+struct NoValue {};
+
+template <typename T>
+struct IsKeyOnly
+{ static const bool value = false; };
+
+template <>
+struct IsKeyOnly<NoValue>
+{ static const bool value = true; };
+
+
 template <int n> struct VectorTypeTraits;
 template <>      struct VectorTypeTraits<1> { typedef uint  type; };
 template <>      struct VectorTypeTraits<2> { typedef uint2 type; };
 template <>      struct VectorTypeTraits<4> { typedef uint4 type; };
 
+template <typename T, int NumElements>
+struct Vectorized;
+
+template <typename T>
+struct Vectorized<T, 1> { T x; };
+
+template <typename T>
+struct Vectorized<T, 2> { T x, y; };
+
+template <typename T>
+struct Vectorized<T, 3> { T x, y, z; };
+
+template <typename T>
+struct Vectorized<T, 4> { T x, y, z, w; };
+
+
+template <typename T>
+__device__ __forceinline__
+T Default() { return T(); }
+
+template <>
+__device__ __forceinline__
+uint Default<uint>() { return (uint)-1u; }
 
 
 __device__ __forceinline__

@@ -252,14 +252,15 @@ void TileReduction(
 }
 
 
-template <int RADIX_BITS,
+template <typename Key,
+          int RADIX_BITS,
           int CURRENT_BIT,
           int NUM_ELEMENTS_PER_THREAD,
           int NUM_WARPS>
 __device__ __forceinline__
 void BlockReduction(
         int  *d_spine,
-        uint *d_inputKey,
+        Key  *d_inputKey,
         int   block,
         const RadixsortWorkDecomposition& work)
 {
@@ -287,7 +288,7 @@ void BlockReduction(
     local_histogram[2] = 0;
     local_histogram[3] = 0;
 
-    uint* blockData = d_inputKey + blockDataOffset;
+    Key* blockData = d_inputKey + blockDataOffset;
 
     for (int tile = 0; tile < B; ++tile)
     {
@@ -337,6 +338,8 @@ void BlockReduction(
 
 
 template <bool FULL_TILE_LOAD,
+          typename Key,
+          typename Value,
           int  RADIX_DIGITS,
           int  CURRENT_BIT,
           int  NUM_ELEMENTS_PER_THREAD,
@@ -345,8 +348,10 @@ template <bool FULL_TILE_LOAD,
           int  WARPSYNC_SCAN_THREADS>
 __device__ __forceinline__
 void TileScanAndScatter(
-        uint *d_outKeys,
-        uint *d_inKeys,
+        Key   *d_outKeys,
+        Key   *d_inKeys,
+        Value *d_outValues,
+        Value *d_inValues,
         int scan_storage[32 * 33],
         volatile int warp_storage[8][2][WARPSYNC_SCAN_THREADS],
         volatile int digit_scan[2][RADIX_DIGITS],
@@ -368,14 +373,16 @@ void TileScanAndScatter(
     }
     __syncthreads();
 
-    uint2 keys[2];
+    typedef Vectorized<Key, 2> Key2;
+
+    Key2  keys[2];
     int2  digits[2];
     int2  flagoffsets[2];
     int2  ranks[2];
 
     if (FULL_TILE_LOAD)
     {
-        uint2* d_inKeysPtr = reinterpret_cast<uint2*>(d_inKeys + blockDataOffset + GetTileDataOffset<NUM_ELEMENTS_PER_THREAD>(tile));
+        Key2* d_inKeysPtr = reinterpret_cast<Key2*>(d_inKeys + blockDataOffset + GetTileDataOffset<NUM_ELEMENTS_PER_THREAD>(tile));
 
         keys[0] = d_inKeysPtr[threadIdx.x + 0 * NUM_THREADS];
         keys[1] = d_inKeysPtr[threadIdx.x + 1 * NUM_THREADS];
@@ -383,15 +390,15 @@ void TileScanAndScatter(
     else // Guarded loads
     {
         int offset;
-        uint* d_inKeysPtr = d_inKeys + blockDataOffset;
+        Key* d_inKeysPtr = d_inKeys + blockDataOffset;
 
         offset = (threadIdx.x << 1) + 0 * (NUM_THREADS << 1);
-        keys[0].x = (offset + 0 - numElementsExtra < 0) ? d_inKeysPtr[offset + 0] : (uint) -1u;
-        keys[0].y = (offset + 1 - numElementsExtra < 0) ? d_inKeysPtr[offset + 1] : (uint) -1u;
+        keys[0].x = (offset + 0 - numElementsExtra < 0) ? d_inKeysPtr[offset + 0] : Default<Key>();
+        keys[0].y = (offset + 1 - numElementsExtra < 0) ? d_inKeysPtr[offset + 1] : Default<Key>();
 
         offset = (threadIdx.x << 1) + 1 * (NUM_THREADS << 1);
-        keys[1].x = (offset + 0 - numElementsExtra < 0) ? d_inKeysPtr[offset + 0] : (uint) -1u;
-        keys[1].y = (offset + 1 - numElementsExtra < 0) ? d_inKeysPtr[offset + 1] : (uint) -1u;
+        keys[1].x = (offset + 0 - numElementsExtra < 0) ? d_inKeysPtr[offset + 0] : Default<Key>();
+        keys[1].y = (offset + 1 - numElementsExtra < 0) ? d_inKeysPtr[offset + 1] : Default<Key>();
     }
 
     // decode keys
@@ -521,6 +528,67 @@ void TileScanAndScatter(
         if (threadIdx.x + 3 * NUM_THREADS < numElementsExtra) d_outKeys[offsets[1].y] = keys[1].y;
     }
 
+    // Scatter values if requested key-value sorting
+    if (!IsKeyOnly<Value>::value)
+    {
+        __syncthreads();
+
+        Value* value_storage = reinterpret_cast<Value*>(scan_storage);
+
+        typedef Vectorized<Value, 2> Value2;
+
+        Value2 values[2];
+
+        if (FULL_TILE_LOAD)
+        {
+            Value2* d_inValuesPtr = reinterpret_cast<Value2*>(d_inValues + blockDataOffset + GetTileDataOffset<NUM_ELEMENTS_PER_THREAD>(tile));
+
+            values[0] = d_inValuesPtr[threadIdx.x + 0 * NUM_THREADS];
+            values[1] = d_inValuesPtr[threadIdx.x + 1 * NUM_THREADS];
+        }
+        else // Guarded loads
+        {
+            int offset;
+            Value* d_inValuesPtr = reinterpret_cast<Value*>(d_inValues + blockDataOffset);
+
+            offset = (threadIdx.x << 1) + 0 * (NUM_THREADS << 1);
+            values[0].x = (offset + 0 - numElementsExtra < 0) ? d_inValuesPtr[offset + 0] : Default<Value>();
+            values[0].y = (offset + 1 - numElementsExtra < 0) ? d_inValuesPtr[offset + 1] : Default<Value>();
+
+            offset = (threadIdx.x << 1) + 1 * (NUM_THREADS << 1);
+            values[1].x = (offset + 0 - numElementsExtra < 0) ? d_inValuesPtr[offset + 0] : Default<Value>();
+            values[1].y = (offset + 1 - numElementsExtra < 0) ? d_inValuesPtr[offset + 1] : Default<Value>();
+        }
+
+        value_storage[ranks[0].x] = values[0].x;
+        value_storage[ranks[0].y] = values[0].y;
+        value_storage[ranks[1].x] = values[1].x;
+        value_storage[ranks[1].y] = values[1].y;
+
+        __syncthreads();
+
+        values[0].x = value_storage[threadIdx.x + 0 * NUM_THREADS];
+        values[0].y = value_storage[threadIdx.x + 1 * NUM_THREADS];
+        values[1].x = value_storage[threadIdx.x + 2 * NUM_THREADS];
+        values[1].y = value_storage[threadIdx.x + 3 * NUM_THREADS];
+
+        if (FULL_TILE_LOAD)
+        {
+            d_outValues[offsets[0].x] = values[0].x;
+            d_outValues[offsets[0].y] = values[0].y;
+            d_outValues[offsets[1].x] = values[1].x;
+            d_outValues[offsets[1].y] = values[1].y;
+        }
+        else // Guarded stores
+        {
+            if (threadIdx.x + 0 * NUM_THREADS < numElementsExtra) d_outValues[offsets[0].x] = values[0].x;
+            if (threadIdx.x + 1 * NUM_THREADS < numElementsExtra) d_outValues[offsets[0].y] = values[0].y;
+            if (threadIdx.x + 2 * NUM_THREADS < numElementsExtra) d_outValues[offsets[1].x] = values[1].x;
+            if (threadIdx.x + 3 * NUM_THREADS < numElementsExtra) d_outValues[offsets[1].y] = values[1].y;
+        }
+    }
+
+    // Update for next tile
     if (threadIdx.x < RADIX_DIGITS)
     {
         carry_total[threadIdx.x] += carry;
@@ -530,19 +598,23 @@ void TileScanAndScatter(
 }
 
 
-template <int PASS,
+template <typename Key,
+          typename Value,
+          int PASS,
           int RADIX_BITS,
           int CURRENT_BIT,
           int NUM_ELEMENTS_PER_THREAD,
           int NUM_WARPS>
 __device__ __forceinline__
 void BlockScanAndScatter(
-        bool *d_swap,
-        int  *d_spine,
-        uint *d_outKeys,
-        uint *d_inKeys,
-        const RadixsortWorkDecomposition& work,
-        int   block)
+        bool   *d_swap,
+        int    *d_spine,
+        Key    *d_outKeys,
+        Key    *d_inKeys,
+        Value  *d_outValues,
+        Value  *d_inValues,
+        const  RadixsortWorkDecomposition& work,
+        int    block)
 {
     const int BL = work.numTilesPerBlock + 1;
     const int BN = work.numTilesPerBlock;
@@ -557,7 +629,6 @@ void BlockScanAndScatter(
     const int RAKING_SEGMENT        = 16;
     const int WARPSYNC_SCAN_THREADS = 8;
 
-
     __shared__ int scan_storage[32 * 33];
     __shared__ volatile int warp_storage[8][2][WARPSYNC_SCAN_THREADS];
     __shared__ volatile int digit_scan[2][RADIX_DIGITS];
@@ -569,7 +640,6 @@ void BlockScanAndScatter(
 
     __shared__ bool trivial_pass;
     __shared__ bool swap;
-
 
     int  warp = threadIdx.x >> 5;
     int  lane = threadIdx.x & (WARP_SIZE - 1);
@@ -624,17 +694,26 @@ void BlockScanAndScatter(
     // Swap global pointers if needed
     if (swap)
     {
-        uint* tmp = d_inKeys;
-        d_inKeys  = d_outKeys;
-        d_outKeys = tmp;
+        Key* key    = d_inKeys;
+        d_inKeys    = d_outKeys;
+        d_outKeys   = key;
+
+        if (!IsKeyOnly<Value>::value)
+        {
+            Value* val  = d_inValues;
+            d_inValues  = d_outValues;
+            d_outValues = val;
+        }
     }
 
     // Process full tiles
     for (int tile = 0; tile < B; ++tile)
     {
-        TileScanAndScatter<true, RADIX_DIGITS, CURRENT_BIT, NUM_ELEMENTS_PER_THREAD, RAKING_THREADS, RAKING_SEGMENT, WARPSYNC_SCAN_THREADS>(
+        TileScanAndScatter<true, Key, Value, RADIX_DIGITS, CURRENT_BIT, NUM_ELEMENTS_PER_THREAD, RAKING_THREADS, RAKING_SEGMENT, WARPSYNC_SCAN_THREADS>(
                 d_outKeys,
                 d_inKeys,
+                d_outValues,
+                d_inValues,
                 scan_storage,
                 warp_storage,
                 digit_scan,
@@ -651,9 +730,11 @@ void BlockScanAndScatter(
     // Last block process extra elements if any
     if (numElementsExtra)
     {
-        TileScanAndScatter<false, RADIX_DIGITS, CURRENT_BIT, NUM_ELEMENTS_PER_THREAD, RAKING_THREADS, RAKING_SEGMENT, WARPSYNC_SCAN_THREADS>(
+        TileScanAndScatter<false, Key, Value, RADIX_DIGITS, CURRENT_BIT, NUM_ELEMENTS_PER_THREAD, RAKING_THREADS, RAKING_SEGMENT, WARPSYNC_SCAN_THREADS>(
                 d_outKeys,
                 d_inKeys,
+                d_outValues,
+                d_inValues,
                 scan_storage,
                 warp_storage,
                 digit_scan,

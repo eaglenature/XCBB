@@ -13,7 +13,8 @@
 
 
 
-template <int PASS,
+template <typename Key,
+          int PASS,
           int RADIX_BITS,
           int CURRENT_BIT,
           int NUM_ELEMENTS_PER_THREAD,
@@ -22,8 +23,8 @@ __global__
 void ReductionKernel(
         bool *d_swap,
         int  *d_spine,
-        uint *d_outKeys,
-        uint *d_inKeys,
+        Key  *d_outKeys,
+        Key  *d_inKeys,
         RadixsortWorkDecomposition workdecomp)
 {
     RadixsortWorkDecomposition work = workdecomp;
@@ -32,7 +33,7 @@ void ReductionKernel(
     const bool swap = (PASS == 0) ? false : d_swap[PASS & 0x1];
     if (swap) d_inKeys = d_outKeys;
 
-    BlockReduction<RADIX_BITS, CURRENT_BIT, NUM_ELEMENTS_PER_THREAD, NUM_WARPS>(
+    BlockReduction<Key, RADIX_BITS, CURRENT_BIT, NUM_ELEMENTS_PER_THREAD, NUM_WARPS>(
             d_spine, d_inKeys, block, work);
 }
 
@@ -105,25 +106,29 @@ void SpineKernel(
 }
 
 
-template <int PASS,
+template <typename Key,
+          typename Value,
+          int PASS,
           int RADIX_BITS,
           int CURRENT_BIT,
           int NUM_ELEMENTS_PER_THREAD,
           int NUM_WARPS>
 __global__
 void ScanAndScatterKernel(
-        bool *d_swap,
-        int  *d_spine,
-        uint *d_outKeys,
-        uint *d_inKeys,
+        bool   *d_swap,
+        int    *d_spine,
+        Key    *d_outKeys,
+        Key    *d_inKeys,
+        Value  *d_outValues,
+        Value  *d_inValues,
         RadixsortWorkDecomposition workload)
 {
     RadixsortWorkDecomposition work = workload;
 
     const int block = blockIdx.x;
 
-    BlockScanAndScatter<PASS, RADIX_BITS, CURRENT_BIT, NUM_ELEMENTS_PER_THREAD, NUM_WARPS>(
-            d_swap, d_spine, d_outKeys, d_inKeys, work, block);
+    BlockScanAndScatter<Key, Value, PASS, RADIX_BITS, CURRENT_BIT, NUM_ELEMENTS_PER_THREAD, NUM_WARPS>(
+            d_swap, d_spine, d_outKeys, d_inKeys, d_outValues, d_inValues, work, block);
 }
 
 #endif /* RADIXSORT_CUDA_XRADIXSORT_H_ */
