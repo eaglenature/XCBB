@@ -88,3 +88,15 @@ bin/radixsort : radixsort.cu $(DEPS)
 	mkdir -p bin
 	$(NVCC) $(DEFINES) $(DEVICE_ARCH) -o bin/radixsort radixsort.cu $(NVCCFLAGS) $(HOST_ARCH) $(INC) $(LIB) -O3
 
+
+#------------------------------------------------------------------------------------------------
+#  make radixsort
+#------------------------------------------------------------------------------------------------
+
+radixsortkeyvalue: bin/radixsortkeyvalue
+
+bin/radixsortkeyvalue : radixsortkeyvalue.cu $(DEPS)
+	mkdir -p bin
+	$(NVCC) $(DEFINES) $(DEVICE_ARCH) -o bin/radixsortkeyvalue radixsortkeyvalue.cu $(NVCCFLAGS) $(HOST_ARCH) $(INC) $(LIB) -O3
+
+
