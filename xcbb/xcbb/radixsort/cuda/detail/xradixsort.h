@@ -463,13 +463,14 @@ void TileScanAndScatter(
         counts[0] = (warp_storage[lane + 0][1][WARPSYNC_SCAN_THREADS - 1] >> (qbyte << 3)) & 0xff;
         counts[1] = (warp_storage[lane + 4][1][WARPSYNC_SCAN_THREADS - 1] >> (qbyte << 3)) & 0xff;
 
-        // (3)
+        if (__all(counts[0] <= 1)) counts[0] = (threadIdx.x == digits[0].x) ? 256 : 0;
+        if (__all(counts[1] <= 1)) counts[1] = (threadIdx.x == digits[1].x) ? 256 : 0;
+
         int total = counts[0] + counts[1];
         carry = total;
 
         counts[1] = counts[0];
         counts[0] = 0;
-
 
         digit_count[0][threadIdx.x] = counts[0];
         digit_count[1][threadIdx.x] = counts[1];
@@ -672,10 +673,14 @@ void BlockScanAndScatter(
 
             // Deterimne if early exit
             trivial_pass = false;
-            bool predicate = false;
-            if (blockIdx.x  > 0) predicate = (digitTotal > 0);
-            if (blockIdx.x == 0) predicate = (d_spine[threadIdx.x * gridDim.x + 1] > 0);
-            trivial_pass = (__popc(__ballot(predicate)) == 1) ? true : false;
+//            bool predicate = false;
+//            if (blockIdx.x  > 0) predicate = (digitTotal > 0);
+//            if (blockIdx.x == 0) predicate = (d_spine[threadIdx.x * gridDim.x + 1] > 0);
+//            trivial_pass = (__popc(__ballot(predicate)) == 1) ? true : false;
+
+            bool predicate = (blockTotal == work.numElements);
+            trivial_pass = (__popc(__ballot(predicate)) == RADIX_DIGITS - 1) ? true : false;
+            if (blockIdx.x == 0) d_swap[(PASS + 1) & 0x1] = !(swap ^ trivial_pass);
         }
 
         int row  = threadIdx.x >> 1;
@@ -683,7 +688,7 @@ void BlockScanAndScatter(
         raking_base = scan_storage + 33 * row + col;
 
         // Set if need to swap for the next pass
-        if (blockIdx.x == 0) d_swap[(PASS + 1) & 0x1] = !(swap ^ trivial_pass);
+        //if (blockIdx.x == 0) d_swap[(PASS + 1) & 0x1] = !(swap ^ trivial_pass);
     }
 
     __syncthreads();
