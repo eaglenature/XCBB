@@ -673,11 +673,6 @@ void BlockScanAndScatter(
 
             // Deterimne if early exit
             trivial_pass = false;
-//            bool predicate = false;
-//            if (blockIdx.x  > 0) predicate = (digitTotal > 0);
-//            if (blockIdx.x == 0) predicate = (d_spine[threadIdx.x * gridDim.x + 1] > 0);
-//            trivial_pass = (__popc(__ballot(predicate)) == 1) ? true : false;
-
             bool predicate = (blockTotal == work.numElements);
             trivial_pass = (__popc(__ballot(predicate)) == RADIX_DIGITS - 1) ? true : false;
             if (blockIdx.x == 0) d_swap[(PASS + 1) & 0x1] = !(swap ^ trivial_pass);
@@ -686,9 +681,6 @@ void BlockScanAndScatter(
         int row  = threadIdx.x >> 1;
         int col  = (threadIdx.x & 1) << 4;
         raking_base = scan_storage + 33 * row + col;
-
-        // Set if need to swap for the next pass
-        //if (blockIdx.x == 0) d_swap[(PASS + 1) & 0x1] = !(swap ^ trivial_pass);
     }
 
     __syncthreads();
