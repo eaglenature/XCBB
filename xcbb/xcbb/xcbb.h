@@ -9,6 +9,7 @@
 #define XCBB_H_
 
 
+#include <xcbb/histogram/xhistogram.h>
 #include <xcbb/radixsort/xradixsort.h>
 #include <xcbb/reduce/xreduce.h>
 #include <xcbb/scan/xscan.h>
