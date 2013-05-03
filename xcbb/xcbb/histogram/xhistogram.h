@@ -25,7 +25,7 @@ void Histogram(uint* const d_inKeys, uint* const d_histogram, int numElements, i
             d_histogram,
             d_inKeys,
             workload);
-    checkCudaErrors(cudaDeviceSynchronize());
+    synchronizeIfEnabled("HistogramKernel");
 }
 
 #endif /* XHISTOGRAM_H_ */
